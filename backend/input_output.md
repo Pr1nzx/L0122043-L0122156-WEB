@@ -80,6 +80,7 @@ Pasien lanjut usia, skor MMSE rendah, tidak mandiri, dan biomarker positif.
   "ab42_40_score": 0.01,
   "t_tau_score": 400
 }
+```
 
 **Response:**
 ```json
@@ -103,3 +104,4 @@ Pasien lanjut usia, skor MMSE rendah, tidak mandiri, dan biomarker positif.
     "OlfactoryStimulation"
   ]
 }
+```
