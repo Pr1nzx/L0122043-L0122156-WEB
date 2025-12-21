@@ -3,6 +3,7 @@ package com.alzheimer.application.service;
 import com.alzheimer.application.dto.request.*;
 import com.alzheimer.application.dto.response.*;
 import com.alzheimer.infrastructure.ontology.manager.OntologyManagerImpl;
+import com.alzheimer.infrastructure.utils.DiagnosticCutoffs;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -185,39 +186,98 @@ public class DiagnosisOrchestratorService {
         try {
             log.info("Processing Step 3 for patient: {}", request.getPatientId());
             
-            // Find session
-            String sessionId = patientToSessionMap.get(request.getPatientId());
-            if (sessionId == null) {
-                throw new IllegalArgumentException(
-                    "No active session found for patient: " + request.getPatientId()
-                );
+            // ============ SESSION HANDLING: Auto-create if not exists ============
+            String sessionId = request.getSessionId();
+            if (sessionId == null || sessionId.isEmpty()) {
+                sessionId = patientToSessionMap.get(request.getPatientId());
             }
             
-            DiagnosisSession session = activeSessions.get(sessionId);
-            if (session == null) {
-                throw new IllegalArgumentException("Session not found: " + sessionId);
+            DiagnosisSession session;
+            if (sessionId == null) {
+                // Auto-create session if no prior session found
+                log.warn("No prior session found for patient {}. Creating new session...", request.getPatientId());
+                sessionId = "sess_" + UUID.randomUUID().toString().substring(0, 8);
+                session = new DiagnosisSession();
+                session.setSessionId(sessionId);
+                session.setPatientId(request.getPatientId());
+                session.setCreatedAt(LocalDateTime.now());
+                
+                // Try to get patient IRI if already exists
+                Map<String, Object> patientData = ontologyManager.createPatient(
+                    request.getPatientId(), new HashMap<>()
+                );
+                session.setPatientIRI((String) patientData.get("patientIRI"));
+                
+                activeSessions.put(sessionId, session);
+                patientToSessionMap.put(request.getPatientId(), sessionId);
+                log.info("Auto-created session for patient {}: {}", request.getPatientId(), sessionId);
+            } else {
+                session = activeSessions.get(sessionId);
+                if (session == null) {
+                    // Session ID provided but not found - create new with that ID
+                    log.warn("Session {} not found in active sessions. Recreating...", sessionId);
+                    session = new DiagnosisSession();
+                    session.setSessionId(sessionId);
+                    session.setPatientId(request.getPatientId());
+                    session.setCreatedAt(LocalDateTime.now());
+                    
+                    Map<String, Object> patientData = ontologyManager.createPatient(
+                        request.getPatientId(), new HashMap<>()
+                    );
+                    session.setPatientIRI((String) patientData.get("patientIRI"));
+                    
+                    activeSessions.put(sessionId, session);
+                    patientToSessionMap.put(request.getPatientId(), sessionId);
+                }
             }
             
             // Update session
             session.setStep3Data(request);
             session.setUpdatedAt(LocalDateTime.now());
             
+            // ============ CALCULATE ATN STATUS USING CUTOFF VALUES ============
+            String amyloidStatus = DiagnosticCutoffs.classifyAmyloidStatus(request.getAbeta4240Ratio());
+            String tauStatus = DiagnosticCutoffs.classifyTauStatus(request.getPTauAbeta42Ratio());
+            String neurodegenStatus = DiagnosticCutoffs.classifyNeurodegenStatus(request.getHippocampalVolume());
+            String atnProfile = DiagnosticCutoffs.getATNProfile(amyloidStatus, tauStatus, neurodegenStatus);
+            
+            log.info("ATN Profile for patient {}: {} (A:{} T:{} N:{})", 
+                    request.getPatientId(), atnProfile, amyloidStatus, tauStatus, neurodegenStatus);
+            
+            // ============ INFER DISEASE STAGE ============
+            String diseaseStage = DiagnosticCutoffs.inferComprehensiveStage(
+                request.getMmseScore(),
+                amyloidStatus,
+                tauStatus,
+                neurodegenStatus,
+                request.getMtaScore()
+            );
+            
+            log.info("Inferred disease stage for patient {}: {}", request.getPatientId(), diseaseStage);
+            
+            // ============ DETERMINE AD DIAGNOSIS ============
+            boolean meetsADCriteria = DiagnosticCutoffs.meetADCriteria(amyloidStatus, tauStatus, neurodegenStatus);
+            String diagnosis = meetsADCriteria ? "Alzheimer's Disease Dementia" : "Suspected Cognitive Impairment";
+            String confidenceLevel = meetsADCriteria ? "High" : "Medium";
+            
             // Execute comprehensive reasoning
             Map<String, Object> finalReasoning = ontologyManager.executeReasoning(
                 request.getPatientId()
             );
             
-            // Generate diagnosis
-            DiagnosisResponse response = generateDiagnosisResponse(
-                session, finalReasoning, request
+            // Generate diagnosis with computed values
+            DiagnosisResponse response = generateDiagnosisResponseWithATN(
+                session, finalReasoning, request, 
+                amyloidStatus, tauStatus, neurodegenStatus, 
+                atnProfile, diseaseStage, diagnosis, confidenceLevel
             );
             
             // Mark session as completed
             session.setCompleted(true);
             session.setDiagnosisResult(response);
             
-            log.info("Step 3 completed for patient {} - Session: {}", 
-                    request.getPatientId(), sessionId);
+            log.info("Step 3 completed for patient {} - Diagnosis: {} - Stage: {}", 
+                    request.getPatientId(), diagnosis, diseaseStage);
             return response;
             
         } catch (Exception e) {
@@ -332,6 +392,105 @@ public class DiagnosisOrchestratorService {
         return response;
     }
     
+    /**
+     * NEW: Generate diagnosis response with computed ATN values using cutoffs
+     */
+    private DiagnosisResponse generateDiagnosisResponseWithATN(
+            DiagnosisSession session, 
+            Map<String, Object> reasoningResults,
+            Step3Request request,
+            String amyloidStatus,
+            String tauStatus,
+            String neurodegenStatus,
+            String atnProfile,
+            String diseaseStage,
+            String diagnosis,
+            String confidenceLevel) {
+        
+        DiagnosisResponse response = new DiagnosisResponse();
+        response.setPatientId(session.getPatientId());
+        response.setSessionId(session.getSessionId());
+        response.setTimestamp(LocalDateTime.now());
+        
+        // Set computed values
+        response.setDiagnosis(diagnosis);
+        response.setDiseaseStage(diseaseStage);
+        response.setAtnProfile(atnProfile);
+        response.setConfidenceLevel(confidenceLevel);
+        
+        // Inferred classes
+        @SuppressWarnings("unchecked")
+        List<String> inferredClasses = (List<String>) reasoningResults.getOrDefault("inferredClasses", new ArrayList<>());
+        response.setInferredClasses(inferredClasses);
+        
+        // Generate recommendations based on computed values
+        response.setRecommendedActions(generateRecommendedActions(diagnosis, diseaseStage));
+        response.setRecommendedActivities(
+            request.getRecommendedActivities() != null ? 
+            request.getRecommendedActivities() : 
+            generateRecommendedActivities(diseaseStage)
+        );
+        response.setRequiredTests(generateRequiredTests(diagnosis, atnProfile, request));
+        
+        // Set SWRL rule triggers
+        response.setTriggeredRules(generateRuleTriggers(inferredClasses));
+        
+        // Set evidence
+        Map<String, Object> evidence = new HashMap<>();
+        evidence.put("clinicalData", session.getStep1Data());
+        evidence.put("testResults", session.getStep2Data());
+        evidence.put("biomarkerValues", Map.of(
+            "abeta4240Ratio", request.getAbeta4240Ratio(),
+            "pTauAbeta42Ratio", request.getPTauAbeta42Ratio(),
+            "hippocampalVolume", request.getHippocampalVolume(),
+            "mtaScore", request.getMtaScore()
+        ));
+        evidence.put("atnClassification", Map.of(
+            "amyloidStatus", amyloidStatus,
+            "tauStatus", tauStatus,
+            "neurodegenStatus", neurodegenStatus,
+            "atnProfile", atnProfile
+        ));
+        addDiagnosticCutoffsSummaryToEvidence(evidence);
+        response.setEvidence(evidence);
+        
+        // Set biomarker results
+        response.setBiomarkerResults(generateBiomarkerResults(session, request));
+        
+        // Set metadata
+        response.setReasoningTimeMs((Long) reasoningResults.getOrDefault("reasoningTimeMs", 0L));
+        response.setIsConsistent((Boolean) reasoningResults.getOrDefault("isConsistent", true));
+        response.setOntologyVersion("1.0");
+        
+        // Set follow-up
+        response.setFollowUpSchedule(generateFollowUpSchedule(diagnosis, diseaseStage, request));
+        response.setReferralRecommendation("Neurologist consultation recommended");
+        
+        log.debug("Generated diagnosis response with ATN profile: {} for patient {}", 
+                 atnProfile, session.getPatientId());
+        
+        return response;
+    }
+    
+    /**
+     * Get summary of diagnostic cutoffs used
+     */
+    private void addDiagnosticCutoffsSummaryToEvidence(Map<String, Object> evidence) {
+        evidence.put("diagnosticCutoffs", Map.of(
+            "mmseRanges", Map.of(
+                "mild", "21-24",
+                "moderate", "10-20",
+                "severe", "≤9"
+            ),
+            "biomarkerCutoffs", Map.of(
+                "abeta4240Ratio", "< 0.01 = Positive",
+                "pTauAbeta42Ratio", "> 0.09 = Positive",
+                "hippocampalVolume", "< 2500 = Atrophy"
+            ),
+            "atnFramework", "A (Amyloid) + T (Tau) + N (Neurodegeneration)"
+        ));
+    }
+    
     private String determineDiagnosis(List<String> inferredClasses) {
         // Logic based on ontology classes
         if (inferredClasses.contains("PersonWithADDementia")) {
@@ -349,7 +508,10 @@ public class DiagnosisOrchestratorService {
     }
     
     private String determineStage(List<String> inferredClasses, Step3Request request) {
-        // Prioritize ontology inferences, fallback to request
+        // Use cutoff-based inference from MMSE score
+        String stage = DiagnosticCutoffs.inferDiseaseStageFromMMSE(request.getMmseScore());
+        
+        // If ontology inference contradicts, use ontology (more authoritative)
         if (inferredClasses.contains("SevereStage")) {
             return "Severe";
         } else if (inferredClasses.contains("ModerateStage")) {
@@ -357,15 +519,18 @@ public class DiagnosisOrchestratorService {
         } else if (inferredClasses.contains("MildStage")) {
             return "Mild";
         }
-        return request.getDiseaseStage();
+        
+        return stage;
     }
     
     private String determineATNProfile(Step3Request request) {
-        StringBuilder profile = new StringBuilder();
-        profile.append("A").append(request.getAmyloidStatus().charAt(0));
-        profile.append("T").append(request.getTauStatus().charAt(0));
-        profile.append("N").append(request.getNeurodegenerationStatus().charAt(0));
-        return profile.toString();
+        // Compute ATN status using cutoff values
+        String amyloidStatus = DiagnosticCutoffs.classifyAmyloidStatus(request.getAbeta4240Ratio());
+        String tauStatus = DiagnosticCutoffs.classifyTauStatus(request.getPTauAbeta42Ratio());
+        String neurodegenStatus = DiagnosticCutoffs.classifyNeurodegenStatus(request.getHippocampalVolume());
+        
+        // Return ATN profile using the utility method
+        return DiagnosticCutoffs.getATNProfile(amyloidStatus, tauStatus, neurodegenStatus);
     }
     
     private String determineConfidence(List<String> inferredClasses) {
@@ -486,24 +651,41 @@ public class DiagnosisOrchestratorService {
     
     private Map<String, Object> generateBiomarkerResults(DiagnosisSession session, Step3Request request) {
         Map<String, Object> results = new HashMap<>();
-        results.put("amyloid", request.getAmyloidStatus());
-        results.put("tau", request.getTauStatus());
-        results.put("neurodegeneration", request.getNeurodegenerationStatus());
-        results.put("atnClassification", determineATNProfile(request));
-        results.put("interpretation", getBiomarkerInterpretation(request));
+        
+        // Compute ATN classification using new numeric values
+        String amyloidStatus = DiagnosticCutoffs.classifyAmyloidStatus(request.getAbeta4240Ratio());
+        String tauStatus = DiagnosticCutoffs.classifyTauStatus(request.getPTauAbeta42Ratio());
+        String neurodegenStatus = DiagnosticCutoffs.classifyNeurodegenStatus(request.getHippocampalVolume());
+        
+        results.put("amyloid", Map.of(
+            "ratio", request.getAbeta4240Ratio(),
+            "status", amyloidStatus
+        ));
+        results.put("tau", Map.of(
+            "ratio", request.getPTauAbeta42Ratio(),
+            "status", tauStatus
+        ));
+        results.put("neurodegeneration", Map.of(
+            "volume", request.getHippocampalVolume(),
+            "status", neurodegenStatus,
+            "mta", request.getMtaScore()
+        ));
+        results.put("atnClassification", DiagnosticCutoffs.getATNProfile(amyloidStatus, tauStatus, neurodegenStatus));
+        results.put("mmseScore", request.getMmseScore());
+        results.put("interpretation", getBiomarkerInterpretation(amyloidStatus, tauStatus, neurodegenStatus));
         return results;
     }
     
-    private String getBiomarkerInterpretation(Step3Request request) {
-        if ("Positive".equals(request.getAmyloidStatus()) && 
-            "Positive".equals(request.getTauStatus()) && 
-            "Positive".equals(request.getNeurodegenerationStatus())) {
+    private String getBiomarkerInterpretation(String amyloidStatus, String tauStatus, String neurodegenStatus) {
+        if ("Positive".equals(amyloidStatus) && 
+            "Positive".equals(tauStatus) && 
+            "Positive".equals(neurodegenStatus)) {
             return "Typical Alzheimer's Disease biomarker profile";
-        } else if ("Positive".equals(request.getAmyloidStatus()) && 
-                   "Negative".equals(request.getTauStatus())) {
+        } else if ("Positive".equals(amyloidStatus) && 
+                   "Negative".equals(tauStatus)) {
             return "Alzheimer's pathologic change";
-        } else if ("Negative".equals(request.getAmyloidStatus()) && 
-                   "Positive".equals(request.getNeurodegenerationStatus())) {
+        } else if ("Negative".equals(amyloidStatus) && 
+                   "Positive".equals(neurodegenStatus)) {
             return "Suspected non-AD pathology";
         }
         return "Atypical biomarker profile - further investigation needed";

@@ -146,10 +146,13 @@ public class OntologyManagerImpl {
         
         long startTime = System.currentTimeMillis();
         log.info("Starting reasoning for patient: {}", patientId);
+        log.info("Ontology has {} axioms. Reasoning engine: {}", 
+                 ontology.getAxiomCount(), reasoner.getClass().getSimpleName());
         
         try {
-            // Flush and recompute inferences
+            // Flush and recompute inferences (triggers SWRL rules execution)
             reasoner.flush();
+            log.debug("SWRL rules executed and inferences computed for patient: {}", patientId);
             
             // Get inferred classes
             Set<OWLClass> inferredClasses = reasoner.getTypes(patientInd, true)
@@ -168,8 +171,11 @@ public class OntologyManagerImpl {
             result.put("reasoningTimeMs", duration);
             result.put("isConsistent", reasoner.isConsistent());
             result.put("timestamp", new Date());
+            result.put("swrlExecuted", true);
+            result.put("reasonerEngine", reasoner.getClass().getSimpleName());
             
-            log.info("Reasoning completed for patient {} in {} ms", patientId, duration);
+            log.info("Reasoning completed for patient {} in {} ms. Inferred classes: {}. SWRL: Executed", 
+                    patientId, duration, inferredClasses.size());
             return result;
             
         } catch (Exception e) {

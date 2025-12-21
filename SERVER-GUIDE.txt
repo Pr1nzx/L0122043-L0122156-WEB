@@ -1,0 +1,81 @@
+═══════════════════════════════════════════════════════════════
+  PANDUAN START & RESTART SERVER - ALZHEIMER DECISION SUPPORT
+═══════════════════════════════════════════════════════════════
+
+📋 QUICK START
+──────────────────────────────────────────────────────────────
+
+UNTUK MULAI SERVER:
+  → Double-click: START-SERVER.bat
+  → Tunggu sampai muncul: "Started AlzheimerBackendApplication"
+  → Server siap di: http://localhost:8080/api
+
+UNTUK RESTART SERVER:
+  → Double-click: RESTART-SERVER.bat
+  → Script otomatis akan:
+     1. Matikan server lama
+     2. Build ulang (mvn clean package)
+     3. Start server baru
+
+🔧 MANUAL COMMANDS (jika script tidak bekerja)
+──────────────────────────────────────────────────────────────
+
+TERMINAL:
+  Buka PowerShell atau CMD di folder: 
+  e:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend
+
+UNTUK START (simple):
+  java -jar target/alzheimer-backend-1.0.0.jar
+
+UNTUK STOP:
+  • Tekan Ctrl+C di terminal (server berjalan)
+  • ATAU di PowerShell lain: Stop-Process -Name java -Force
+
+UNTUK RESTART MANUAL:
+  Stop-Process -Name java -Force; Start-Sleep -Seconds 2; java -jar target/alzheimer-backend-1.0.0.jar
+
+UNTUK BUILD BARU (jika ada perubahan kode):
+  mvn clean package -DskipTests
+
+⚠️ TROUBLESHOOTING
+──────────────────────────────────────────────────────────────
+
+Port 8080 sudah terpakai?
+  → Buka PowerShell: Get-NetTCPConnection -LocalPort 8080 | Stop-Process -Force
+  → Tunggu 2 detik
+  → Coba start server lagi
+
+JAR file tidak ketemu?
+  → Pastikan sudah run: mvn clean package -DskipTests
+  → File harus ada di: backendJAVA\backend\target\alzheimer-backend-1.0.0.jar
+
+Build error?
+  → Buka PowerShell di folder backendJAVA\backend
+  → Run: mvn clean compile
+
+✅ CARA CEK SERVER RUNNING
+──────────────────────────────────────────────────────────────
+
+Postman:
+  GET http://localhost:8080/api/actuator/health
+  
+Browser:
+  http://localhost:8080/api/actuator/health
+
+Jika response: {"status":"UP"}
+  → Server running! 🎉
+
+📌 NOTES
+──────────────────────────────────────────────────────────────
+
+• Server running di port: 8080
+• Context path: /api
+• API endpoints:
+  - POST http://localhost:8080/api/v1/diagnosis/step1
+  - POST http://localhost:8080/api/v1/diagnosis/step2
+  - POST http://localhost:8080/api/v1/diagnosis/step3
+
+• Log akan muncul di terminal/command prompt
+• Untuk close server: Ctrl+C
+
+═══════════════════════════════════════════════════════════════
