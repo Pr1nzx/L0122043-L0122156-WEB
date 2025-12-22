@@ -16,7 +16,7 @@ spring:
       - org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration
 
 ontology:
-  file-path: classpath:ontology/ad-decision-support-system.ttl
+  file-path: classpath:ontology/ad-decision-support-system2.ttl
   reasoner-type: PELLET
   swrl-enabled: true
   base-iri: "http://www.semanticweb.org/cahyaw06/ontologies/2025/10/ad-decision-support-system/"

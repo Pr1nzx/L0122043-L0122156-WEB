@@ -1,5 +1,6 @@
 package com.alzheimer.application.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -56,6 +57,7 @@ public class Step2Request {
     @Schema(description = "Aβ42/40 ratio", example = "0.05")
     private Double abeta4240Ratio;
     
+    @JsonProperty("pTauAbeta42Ratio")
     @Schema(description = "P-Tau/Aβ42 ratio", example = "0.03")
     private Double pTauAbeta42Ratio;
     

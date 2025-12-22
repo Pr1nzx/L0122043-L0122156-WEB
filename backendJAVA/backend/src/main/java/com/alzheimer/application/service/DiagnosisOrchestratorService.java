@@ -235,49 +235,103 @@ public class DiagnosisOrchestratorService {
             session.setStep3Data(request);
             session.setUpdatedAt(LocalDateTime.now());
             
-            // ============ CALCULATE ATN STATUS USING CUTOFF VALUES ============
-            String amyloidStatus = DiagnosticCutoffs.classifyAmyloidStatus(request.getAbeta4240Ratio());
-            String tauStatus = DiagnosticCutoffs.classifyTauStatus(request.getPTauAbeta42Ratio());
-            String neurodegenStatus = DiagnosticCutoffs.classifyNeurodegenStatus(request.getHippocampalVolume());
-            String atnProfile = DiagnosticCutoffs.getATNProfile(amyloidStatus, tauStatus, neurodegenStatus);
+            // ============ ADD DATA TO ONTOLOGY AND EXECUTE REASONING ============
+            // Add biomarker data for SWRL rule execution
+            Map<String, Object> biomarkerData = new HashMap<>();
+            // BrainImagingType dari Step2 (jika ada di session)
+            if (session.getStep2Data() != null) {
+                String brainImagingType = (String) session.getStep2Data().getBrainImagingType();
+                if (brainImagingType != null) {
+                    biomarkerData.put("brainImagingType", brainImagingType);
+                }
+            }
+            if (request.getAbeta4240Ratio() != null) biomarkerData.put("abeta4240Ratio", request.getAbeta4240Ratio());
+            if (request.getPTauAbeta42Ratio() != null) biomarkerData.put("pTauAbeta42Ratio", request.getPTauAbeta42Ratio());
+            if (request.getHippocampalVolume() != null) biomarkerData.put("hippocampalVolume", request.getHippocampalVolume());
+            if (session.getStep1Data() != null && session.getStep1Data().getMmseScore() != null) {
+                biomarkerData.put("mmseScore", session.getStep1Data().getMmseScore());
+            }
             
-            log.info("ATN Profile for patient {}: {} (A:{} T:{} N:{})", 
-                    request.getPatientId(), atnProfile, amyloidStatus, tauStatus, neurodegenStatus);
-            
-            // ============ INFER DISEASE STAGE ============
-            String diseaseStage = DiagnosticCutoffs.inferComprehensiveStage(
-                request.getMmseScore(),
-                amyloidStatus,
-                tauStatus,
-                neurodegenStatus,
-                request.getMtaScore()
-            );
-            
-            log.info("Inferred disease stage for patient {}: {}", request.getPatientId(), diseaseStage);
-            
-            // ============ DETERMINE AD DIAGNOSIS ============
-            boolean meetsADCriteria = DiagnosticCutoffs.meetADCriteria(amyloidStatus, tauStatus, neurodegenStatus);
-            String diagnosis = meetsADCriteria ? "Alzheimer's Disease Dementia" : "Suspected Cognitive Impairment";
-            String confidenceLevel = meetsADCriteria ? "High" : "Medium";
-            
-            // Execute comprehensive reasoning
+            // Execute reasoning with SWRL rules (this will infer AmyloidPositive, TauPositive, etc)
             Map<String, Object> finalReasoning = ontologyManager.executeReasoning(
                 request.getPatientId()
             );
             
-            // Generate diagnosis with computed values
-            DiagnosisResponse response = generateDiagnosisResponseWithATN(
+            // ============ USE ONTOLOGY INFERENCE FOR DIAGNOSIS ============
+            // Get diagnosis from ontology inference
+            List<String> inferredClasses = (List<String>) finalReasoning.get("inferredClasses");
+            List<String> firedRules = (List<String>) finalReasoning.getOrDefault("firedRules", new ArrayList<>());
+            
+            boolean hasADDementia = inferredClasses.contains("PersonWithADDementia");
+            boolean hasMCI = inferredClasses.contains("PersonWithMCI");
+            boolean hasAsymptomaticAD = inferredClasses.contains("AsymptomaticAD");
+            boolean hasNonADDementia = inferredClasses.contains("PersonWithNonADDementia");
+            
+            String diagnosis;
+            String confidenceLevel;
+            
+            if (hasADDementia) {
+                diagnosis = "Alzheimer's Disease Dementia";
+                confidenceLevel = "High";
+            } else if (hasMCI) {
+                diagnosis = "Mild Cognitive Impairment due to Alzheimer's";
+                confidenceLevel = "High";
+            } else if (hasAsymptomaticAD) {
+                diagnosis = "Preclinical Alzheimer's Disease";
+                confidenceLevel = "High";
+            } else if (hasNonADDementia) {
+                diagnosis = "Non-AD Dementia";
+                confidenceLevel = "Medium";
+            } else {
+                diagnosis = "Suspected Cognitive Impairment";
+                confidenceLevel = "Medium";
+            }
+            
+            // ============ INFER DISEASE STAGE (hybrid: ontology + MMSE) ============
+            // Priority: Use ontology if available, fallback to MMSE
+            String diseaseStage;
+            if (inferredClasses.contains("SevereStage")) {
+                diseaseStage = "Severe";
+            } else if (inferredClasses.contains("ModerateStage")) {
+                diseaseStage = "Moderate";
+            } else if (inferredClasses.contains("MildStage")) {
+                diseaseStage = "Mild";
+            } else {
+                // Fallback to MMSE-based staging
+                Integer mmseScore = session.getStep1Data() != null ? session.getStep1Data().getMmseScore() : null;
+                if (mmseScore != null) {
+                    diseaseStage = DiagnosticCutoffs.inferDiseaseStageFromMMSE(mmseScore);
+                } else {
+                    diseaseStage = "Unknown";
+                }
+            }
+            
+            // ============ DETERMINE ATN PROFILE (hybrid: ontology + cutoffs) ============
+            // Get biomarker status from ontology inference
+            boolean amyloidPositive = inferredClasses.contains("AmyloidPositive");
+            boolean tauPositive = inferredClasses.contains("TauPositive");
+            boolean neurodegenPositive = inferredClasses.contains("NeurodegenerationPositive");
+            
+            String amyloidStatus = amyloidPositive ? "A+" : "A−";
+            String tauStatus = tauPositive ? "T+" : "T−";
+            String neurodegenStatus = neurodegenPositive ? "N+" : "N−";
+            String atnProfile = amyloidStatus + ", " + tauStatus + ", " + neurodegenStatus;
+            
+            log.info("ATN Profile for patient {} (from ontology): {} (A:{} T:{} N:{})", 
+                    request.getPatientId(), atnProfile, amyloidStatus, tauStatus, neurodegenStatus);
+            
+            // Generate diagnosis response
+            DiagnosisResponse response = generateDiagnosisResponse(
                 session, finalReasoning, request, 
-                amyloidStatus, tauStatus, neurodegenStatus, 
-                atnProfile, diseaseStage, diagnosis, confidenceLevel
+                diagnosis, confidenceLevel, diseaseStage, atnProfile
             );
             
             // Mark session as completed
             session.setCompleted(true);
             session.setDiagnosisResult(response);
             
-            log.info("Step 3 completed for patient {} - Diagnosis: {} - Stage: {}", 
-                    request.getPatientId(), diagnosis, diseaseStage);
+            log.info("Step 3 completed for patient {} - Diagnosis: {} - Stage: {} - ATN: {}", 
+                    request.getPatientId(), diagnosis, diseaseStage, atnProfile);
             return response;
             
         } catch (Exception e) {
@@ -335,40 +389,43 @@ public class DiagnosisOrchestratorService {
     private DiagnosisResponse generateDiagnosisResponse(
             DiagnosisSession session, 
             Map<String, Object> reasoningResults,
-            Step3Request request) {
+            Step3Request request,
+            String diagnosis,
+            String confidenceLevel,
+            String diseaseStage,
+            String atnProfile) {
         
         DiagnosisResponse response = new DiagnosisResponse();
         response.setPatientId(session.getPatientId());
         response.setSessionId(session.getSessionId());
         response.setTimestamp(LocalDateTime.now());
         
-        // Determine diagnosis from ontology inferences
+        // Set diagnosis from ontology-driven inference
         @SuppressWarnings("unchecked")
         List<String> inferredClasses = (List<String>) reasoningResults.get("inferredClasses");
-        
-        String diagnosis = determineDiagnosis(inferredClasses);
-        String stage = determineStage(inferredClasses, request);
-        String atnProfile = determineATNProfile(request);
+        @SuppressWarnings("unchecked")
+        List<String> firedRuleStrings = (List<String>) reasoningResults.getOrDefault("firedRules", new ArrayList<>());
         
         response.setDiagnosis(diagnosis);
-        response.setDiseaseStage(stage);
+        response.setDiseaseStage(diseaseStage);
         response.setAtnProfile(atnProfile);
-        response.setConfidenceLevel(determineConfidence(inferredClasses));
+        response.setConfidenceLevel(confidenceLevel);
         
         // Set inferred classes
         response.setInferredClasses(inferredClasses);
         
+        // Convert fired rules to RuleTrigger format
+        List<DiagnosisResponse.RuleTrigger> ruleTriggers = convertToRuleTriggers(firedRuleStrings);
+        response.setTriggeredRules(ruleTriggers);
+        
         // Generate recommendations
-        response.setRecommendedActions(generateRecommendedActions(diagnosis, stage));
+        response.setRecommendedActions(generateRecommendedActions(diagnosis, diseaseStage));
         response.setRecommendedActivities(
             request.getRecommendedActivities() != null ? 
             request.getRecommendedActivities() : 
-            generateRecommendedActivities(stage)
+            generateRecommendedActivities(diseaseStage)
         );
         response.setRequiredTests(generateRequiredTests(diagnosis, atnProfile, request));
-        
-        // Set SWRL rule triggers (simulated for now)
-        response.setTriggeredRules(generateRuleTriggers(inferredClasses));
         
         // Set evidence
         Map<String, Object> evidence = new HashMap<>();
@@ -383,13 +440,27 @@ public class DiagnosisOrchestratorService {
         // Set metadata
         response.setReasoningTimeMs((Long) reasoningResults.getOrDefault("reasoningTimeMs", 0L));
         response.setIsConsistent((Boolean) reasoningResults.getOrDefault("isConsistent", true));
-        response.setOntologyVersion("1.0");
+        response.setOntologyVersion("system2");
         
         // Set follow-up
-        response.setFollowUpSchedule(generateFollowUpSchedule(diagnosis, stage, request));
+        response.setFollowUpSchedule(generateFollowUpSchedule(diagnosis, diseaseStage, request));
         response.setReferralRecommendation("Neurologist consultation recommended");
         
         return response;
+    }
+    
+    /**
+     * Convert string rule names to RuleTrigger objects
+     */
+    private List<DiagnosisResponse.RuleTrigger> convertToRuleTriggers(List<String> ruleNames) {
+        List<DiagnosisResponse.RuleTrigger> triggers = new ArrayList<>();
+        for (String ruleName : ruleNames) {
+            DiagnosisResponse.RuleTrigger trigger = new DiagnosisResponse.RuleTrigger();
+            trigger.setRuleName(ruleName);
+            trigger.setTriggeredAt(LocalDateTime.now());
+            triggers.add(trigger);
+        }
+        return triggers;
     }
     
     /**

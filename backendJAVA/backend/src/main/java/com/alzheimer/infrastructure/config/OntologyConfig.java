@@ -112,12 +112,9 @@ public class OntologyConfig {
             return null;
         }
         
-        log.warn("SWRL engine requested but not available in this build. Using mock implementation.");
-        return new MockSWRLEngine();
-    }
-    
-    private static class MockSWRLEngine {
-        // Mock SWRL engine for when swrlapi is not available
+        log.info("SWRL reasoning will be executed via OWLReasoner.flush() method");
+        // Return a marker object to indicate SWRL is enabled
+        return new Object();
     }
     
     @Bean

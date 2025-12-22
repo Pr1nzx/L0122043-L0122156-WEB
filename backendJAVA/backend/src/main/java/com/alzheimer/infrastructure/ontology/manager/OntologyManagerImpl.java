@@ -20,6 +20,7 @@ public class OntologyManagerImpl {
     private final OWLOntology ontology;
     private final OWLReasoner reasoner;
     private final IRI baseIRI;
+    private final SWRLRuleExecutor swrlRuleExecutor;
     
     private OWLDataFactory dataFactory;
     private final Map<String, OWLNamedIndividual> patientIndividuals = new ConcurrentHashMap<>();
@@ -150,16 +151,20 @@ public class OntologyManagerImpl {
                  ontology.getAxiomCount(), reasoner.getClass().getSimpleName());
         
         try {
-            // Flush and recompute inferences (triggers SWRL rules execution)
+            // Flush reasoner to trigger SWRL rule execution
+            // This is the critical step - Pellet reasoner automatically executes SWRL rules
             reasoner.flush();
-            log.debug("SWRL rules executed and inferences computed for patient: {}", patientId);
+            log.info("Reasoner flushed - SWRL rules executed automatically");
             
-            // Get inferred classes
+            // Get inferred classes (derived from SWRL rules)
             Set<OWLClass> inferredClasses = reasoner.getTypes(patientInd, true)
                 .getFlattened();
             
             // Get inferred properties
             Map<String, List<String>> inferredProperties = getInferredProperties(patientInd);
+            
+            // Extract fired rule names from inferred classes
+            List<String> firedRules = extractFiredRules(inferredClasses);
             
             long endTime = System.currentTimeMillis();
             long duration = endTime - startTime;
@@ -168,20 +173,57 @@ public class OntologyManagerImpl {
             result.put("patientId", patientId);
             result.put("inferredClasses", getClassNames(inferredClasses));
             result.put("inferredProperties", inferredProperties);
+            result.put("firedRules", firedRules);
             result.put("reasoningTimeMs", duration);
             result.put("isConsistent", reasoner.isConsistent());
             result.put("timestamp", new Date());
-            result.put("swrlExecuted", true);
             result.put("reasonerEngine", reasoner.getClass().getSimpleName());
             
-            log.info("Reasoning completed for patient {} in {} ms. Inferred classes: {}. SWRL: Executed", 
-                    patientId, duration, inferredClasses.size());
+            log.info("Reasoning completed for patient {} in {} ms. Inferred {} classes, {} rules fired.", 
+                    patientId, duration, inferredClasses.size(), firedRules.size());
             return result;
             
         } catch (Exception e) {
             log.error("Reasoning failed for patient: {}", patientId, e);
             throw new RuntimeException("Reasoning failed: " + e.getMessage(), e);
         }
+    }
+    
+    /**
+     * Extract rule names from inferred classes.
+     * Maps inferred classes back to their corresponding SWRL rule names.
+     */
+    private List<String> extractFiredRules(Set<OWLClass> inferredClasses) {
+        List<String> firedRules = new ArrayList<>();
+        Map<String, String> classToRuleMapping = new HashMap<>();
+        
+        // Map inferred classes to their corresponding SWRL rule names from system2.ttl
+        classToRuleMapping.put("AsymptomaticAD", "AsymptomaticAD");
+        classToRuleMapping.put("PersonWithMCI", "PersonWithMCI");
+        classToRuleMapping.put("PersonWithADDementia", "PersonWithADDementia");
+        classToRuleMapping.put("PersonWithNonADDementia", "PersonWithNonADDementia");
+        classToRuleMapping.put("AlzheimersContinuumPerson", "AlzheimersContinuumPerson");
+        classToRuleMapping.put("AmyloidPositive", "AmyloidPositive_*");
+        classToRuleMapping.put("AmyloidNegative", "AmyloidNegative_*");
+        classToRuleMapping.put("TauPositive", "TauPositive_*");
+        classToRuleMapping.put("TauNegative", "TauNegative_*");
+        classToRuleMapping.put("NeurodegenerationPositive", "NeurodegenerationPositive_*");
+        classToRuleMapping.put("NeurodegenerationNegative", "NeurodegenerationNegative_*");
+        classToRuleMapping.put("NeedBiomarkersTest", "NeedBiomarkersTest");
+        classToRuleMapping.put("NeedStructuralImaging", "NeedStructuralImaging");
+        classToRuleMapping.put("MildActivities", "MildActivities");
+        classToRuleMapping.put("ModerateActivities", "ModerateActivities");
+        classToRuleMapping.put("SevereActivities", "SevereActivities");
+        
+        for (OWLClass cls : inferredClasses) {
+            String shortForm = cls.getIRI().getShortForm();
+            String ruleName = classToRuleMapping.get(shortForm);
+            if (ruleName != null && !firedRules.contains(ruleName)) {
+                firedRules.add(ruleName);
+            }
+        }
+        
+        return firedRules;
     }
     
     public Map<String, Object> clearPatientData(String patientId) {
@@ -250,7 +292,8 @@ public class OntologyManagerImpl {
     private void addTestProperties(OWLNamedIndividual testInd, 
                                    Map<String, Object> testData, 
                                    OWLOntologyManager manager) {
-        // Map of test data keys to ontology properties
+        // Map of test data keys to FULL ontology property IRIs from system2.ttl
+        // All properties must match exactly with ontology namespace
         Map<String, String> propertyMap = new HashMap<>();
         propertyMap.put("mmseScore", "hasMMSEScore");
         propertyMap.put("mocaScore", "hasMoCAScore");
@@ -260,29 +303,43 @@ public class OntologyManagerImpl {
         propertyMap.put("abeta42Score", "hasAβ42Score");
         propertyMap.put("pTau181Score", "hasP-Tau181Score");
         propertyMap.put("tTau", "hasT-Tau");
-        propertyMap.put("abeta4240Ratio", "hasAβ42/40Score");
-        propertyMap.put("pTauAbeta42Ratio", "hasP-Tau/Aβ42Score");
+        // Special handling for Aβ and P-Tau ratio properties with # encoding
+        propertyMap.put("abeta4240Ratio", "hasAβ42/40Score");  // Maps to hasAβ42/40Score in ontology
+        propertyMap.put("pTauAbeta42Ratio", "hasP-Tau/Aβ42Score");  // Maps to hasP-Tau/Aβ42Score in ontology
         propertyMap.put("hippocampalVolume", "hasAdjHippocampalVol");
+        propertyMap.put("hippocampalVolumeRatio", "hasAdjHippocampalVol");
         propertyMap.put("age", "hasAge");
         
         for (Map.Entry<String, Object> entry : testData.entrySet()) {
             try {
                 String key = entry.getKey();
+                // Skip non-data properties
                 if (key.equals("brainImagingType")) continue;
                 
                 String propertyName = propertyMap.get(key);
-                if (propertyName == null) continue;
+                if (propertyName == null) {
+                    log.debug("No property mapping found for key: {}", key);
+                    continue;
+                }
                 
                 Object value = entry.getValue();
-                OWLDataProperty property = dataFactory.getOWLDataProperty(
-                    IRI.create(baseIRI + propertyName)
-                );
+                if (value == null) {
+                    log.debug("Skipping null value for property: {}", key);
+                    continue;
+                }
+                
+                // Create IRI using baseIRI - ontology namespace
+                IRI propertyIRI = IRI.create(baseIRI + propertyName);
+                OWLDataProperty property = dataFactory.getOWLDataProperty(propertyIRI);
                 
                 OWLLiteral literal = createLiteral(value);
                 if (literal != null) {
                     OWLDataPropertyAssertionAxiom axiom = 
                         dataFactory.getOWLDataPropertyAssertionAxiom(property, testInd, literal);
                     manager.addAxiom(ontology, axiom);
+                    log.debug("Added property {} = {} to test individual", propertyName, value);
+                } else {
+                    log.warn("Failed to create literal for property {} with value {}", propertyName, value);
                 }
             } catch (Exception e) {
                 log.warn("Failed to add test property {}: {}", entry.getKey(), e.getMessage());
@@ -345,7 +402,7 @@ public class OntologyManagerImpl {
         return names;
     }
     
-    // Public getters
+    // Public getters and diagnosis check methods
     public boolean hasPatient(String patientId) {
         return patientIndividuals.containsKey(patientId);
     }
@@ -356,5 +413,185 @@ public class OntologyManagerImpl {
     
     public OWLReasoner getReasoner() {
         return reasoner;
+    }
+    
+    /**
+     * Check if patient has inferred diagnosis class via SWRL rules
+     * This is ontology-driven, not hardcoded
+     */
+    public boolean isPersonWithADDementia(String patientId) {
+        OWLNamedIndividual patientInd = patientIndividuals.get(patientId);
+        if (patientInd == null) {
+            return false;
+        }
+        
+        try {
+            // PersonWithADDementia is defined in ontology at https://w3id.org/sbeo#PersonWithADDementia
+            OWLClass adDementiaClass = dataFactory.getOWLClass(
+                IRI.create("https://w3id.org/sbeo#PersonWithADDementia")
+            );
+            
+            // Check if patient is instance of PersonWithADDementia via reasoning
+            return reasoner.getInstances(adDementiaClass, false).getFlattened().contains(patientInd);
+            
+        } catch (Exception e) {
+            log.warn("Error checking PersonWithADDementia for patient {}: {}", patientId, e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check if patient has inferred MCI diagnosis class via SWRL rules
+     */
+    public boolean isPersonWithMCI(String patientId) {
+        OWLNamedIndividual patientInd = patientIndividuals.get(patientId);
+        if (patientInd == null) {
+            return false;
+        }
+        
+        try {
+            OWLClass mciClass = dataFactory.getOWLClass(
+                IRI.create(baseIRI + "PersonWithMCI")
+            );
+            return reasoner.getInstances(mciClass, false).getFlattened().contains(patientInd);
+        } catch (Exception e) {
+            log.warn("Error checking PersonWithMCI for patient {}: {}", patientId, e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check if patient has Amyloid positive biomarker via SWRL rules
+     */
+    public boolean hasAmyloidPositive(String patientId) {
+        OWLNamedIndividual patientInd = patientIndividuals.get(patientId);
+        if (patientInd == null) {
+            return false;
+        }
+        
+        try {
+            OWLClass amyloidClass = dataFactory.getOWLClass(
+                IRI.create(baseIRI + "AmyloidPositive")
+            );
+            
+            // Check if patient has any clinical test with AmyloidPositive
+            OWLObjectProperty hasClinicalTest = dataFactory.getOWLObjectProperty(
+                IRI.create(baseIRI + "hasClinicalTest")
+            );
+            
+            Set<OWLNamedIndividual> tests = reasoner.getObjectPropertyValues(patientInd, hasClinicalTest)
+                .getFlattened();
+            
+            for (OWLNamedIndividual test : tests) {
+                if (reasoner.getTypes(test, false).getFlattened().contains(amyloidClass)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            log.warn("Error checking AmyloidPositive for patient {}: {}", patientId, e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check if patient has Tau positive biomarker via SWRL rules
+     */
+    public boolean hasTauPositive(String patientId) {
+        OWLNamedIndividual patientInd = patientIndividuals.get(patientId);
+        if (patientInd == null) {
+            return false;
+        }
+        
+        try {
+            OWLClass tauClass = dataFactory.getOWLClass(
+                IRI.create(baseIRI + "TauPositive")
+            );
+            
+            OWLObjectProperty hasClinicalTest = dataFactory.getOWLObjectProperty(
+                IRI.create(baseIRI + "hasClinicalTest")
+            );
+            
+            Set<OWLNamedIndividual> tests = reasoner.getObjectPropertyValues(patientInd, hasClinicalTest)
+                .getFlattened();
+            
+            for (OWLNamedIndividual test : tests) {
+                if (reasoner.getTypes(test, false).getFlattened().contains(tauClass)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            log.warn("Error checking TauPositive for patient {}: {}", patientId, e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Check if patient has Neurodegeneration positive biomarker via SWRL rules
+     */
+    public boolean hasNeurodegenerationPositive(String patientId) {
+        OWLNamedIndividual patientInd = patientIndividuals.get(patientId);
+        if (patientInd == null) {
+            return false;
+        }
+        
+        try {
+            OWLClass neurodegenClass = dataFactory.getOWLClass(
+                IRI.create(baseIRI + "NeurodegenerationPositive")
+            );
+            
+            OWLObjectProperty hasClinicalTest = dataFactory.getOWLObjectProperty(
+                IRI.create(baseIRI + "hasClinicalTest")
+            );
+            
+            Set<OWLNamedIndividual> tests = reasoner.getObjectPropertyValues(patientInd, hasClinicalTest)
+                .getFlattened();
+            
+            for (OWLNamedIndividual test : tests) {
+                if (reasoner.getTypes(test, false).getFlattened().contains(neurodegenClass)) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            log.warn("Error checking NeurodegenerationPositive for patient {}: {}", patientId, e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get all inferred diagnostic classes for a patient
+     */
+    public List<String> getDiagnosticClasses(String patientId) {
+        OWLNamedIndividual patientInd = patientIndividuals.get(patientId);
+        if (patientInd == null) {
+            return new ArrayList<>();
+        }
+        
+        try {
+            Set<OWLClass> allTypes = reasoner.getTypes(patientInd, true).getFlattened();
+            List<String> diagnosticClasses = new ArrayList<>();
+            
+            for (OWLClass cls : allTypes) {
+                String shortForm = cls.getIRI().getShortForm();
+                // Filter to diagnostic-related classes
+                if (isDiagnosticClass(shortForm)) {
+                    diagnosticClasses.add(shortForm);
+                }
+            }
+            
+            return diagnosticClasses;
+        } catch (Exception e) {
+            log.warn("Error getting diagnostic classes for patient {}: {}", patientId, e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+    
+    private boolean isDiagnosticClass(String className) {
+        return className.contains("AD") || className.contains("MCI") || 
+               className.contains("Dementia") || className.contains("Amyloid") ||
+               className.contains("Tau") || className.contains("Neurodegeneration") ||
+               className.contains("Continuation") || className.contains("Asymptomatic");
     }
 }
