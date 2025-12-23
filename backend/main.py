@@ -91,8 +91,8 @@ def diagnose_patient(data: PatientData):
             if old_t: destroy_entity(old_t)
             
             # Hapus juga relative instance jika ingin bersih total (opsional)
-            # old_fam = onto.search_one(iri="*FamilyMember_Instance")
-            # if old_fam: destroy_entity(old_fam)
+            old_fam = onto.search_one(iri="*FamilyMember_Instance")
+            if old_fam: destroy_entity(old_fam)
         except: pass
 
         # 2. LOAD CLASS PENTING
