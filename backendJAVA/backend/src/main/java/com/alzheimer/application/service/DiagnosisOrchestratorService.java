@@ -236,21 +236,8 @@ public class DiagnosisOrchestratorService {
             session.setUpdatedAt(LocalDateTime.now());
             
             // ============ ADD DATA TO ONTOLOGY AND EXECUTE REASONING ============
-            // Add biomarker data for SWRL rule execution
-            Map<String, Object> biomarkerData = new HashMap<>();
-            // BrainImagingType dari Step2 (jika ada di session)
-            if (session.getStep2Data() != null) {
-                String brainImagingType = (String) session.getStep2Data().getBrainImagingType();
-                if (brainImagingType != null) {
-                    biomarkerData.put("brainImagingType", brainImagingType);
-                }
-            }
-            if (request.getAbeta4240Ratio() != null) biomarkerData.put("abeta4240Ratio", request.getAbeta4240Ratio());
-            if (request.getPTauAbeta42Ratio() != null) biomarkerData.put("pTauAbeta42Ratio", request.getPTauAbeta42Ratio());
-            if (request.getHippocampalVolume() != null) biomarkerData.put("hippocampalVolume", request.getHippocampalVolume());
-            if (session.getStep1Data() != null && session.getStep1Data().getMmseScore() != null) {
-                biomarkerData.put("mmseScore", session.getStep1Data().getMmseScore());
-            }
+            // Biomarker data was already added in Step 2 via addClinicalTest()
+            // Step 3 just needs to execute reasoning on existing data
             
             // Execute reasoning with SWRL rules (this will infer AmyloidPositive, TauPositive, etc)
             Map<String, Object> finalReasoning = ontologyManager.executeReasoning(

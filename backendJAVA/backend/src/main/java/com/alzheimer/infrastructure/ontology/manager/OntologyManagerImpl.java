@@ -303,9 +303,10 @@ public class OntologyManagerImpl {
         propertyMap.put("abeta42Score", "hasAβ42Score");
         propertyMap.put("pTau181Score", "hasP-Tau181Score");
         propertyMap.put("tTau", "hasT-Tau");
-        // Special handling for Aβ and P-Tau ratio properties with # encoding
-        propertyMap.put("abeta4240Ratio", "hasAβ42/40Score");  // Maps to hasAβ42/40Score in ontology
-        propertyMap.put("pTauAbeta42Ratio", "hasP-Tau/Aβ42Score");  // Maps to hasP-Tau/Aβ42Score in ontology
+        // These two properties are defined in the ontology with a '#' separator, not '/'.
+        // Use the full IRI so we match the exact datatype property names in system2.ttl.
+        propertyMap.put("abeta4240Ratio", "http://www.semanticweb.org/cahyaw06/ontologies/2025/10/ad-decision-support-system#hasAβ42/40Score");
+        propertyMap.put("pTauAbeta42Ratio", "http://www.semanticweb.org/cahyaw06/ontologies/2025/10/ad-decision-support-system#hasP-Tau/Aβ42Score");
         propertyMap.put("hippocampalVolume", "hasAdjHippocampalVol");
         propertyMap.put("hippocampalVolumeRatio", "hasAdjHippocampalVol");
         propertyMap.put("age", "hasAge");
@@ -328,8 +329,11 @@ public class OntologyManagerImpl {
                     continue;
                 }
                 
-                // Create IRI using baseIRI - ontology namespace
-                IRI propertyIRI = IRI.create(baseIRI + propertyName);
+                // Build the full IRI; some properties already contain the full namespace (with '#').
+                String propertyIriStr = propertyName.startsWith("http")
+                    ? propertyName
+                    : baseIRI + propertyName;
+                IRI propertyIRI = IRI.create(propertyIriStr);
                 OWLDataProperty property = dataFactory.getOWLDataProperty(propertyIRI);
                 
                 OWLLiteral literal = createLiteral(value);

@@ -40,7 +40,6 @@ public class SWRLRuleExecutor {
             log.warn("Could not load SWRL rules from ontology: {}", e.getMessage());
         }
     }
-    }
     
     public Map<String, Object> executeAllRules() {
         try {

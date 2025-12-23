@@ -1,0 +1,17 @@
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\dto\response\DiagnosisResponse.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\api\OntologyController.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\infrastructure\config\WebConfig.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\infrastructure\config\OntologyConfig.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\dto\response\StepResponse.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\api\DiagnosisController.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\infrastructure\ontology\manager\SWRLRuleProcessor.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\infrastructure\utils\DiagnosticCutoffs.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\api\DiagnosticController.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\dto\request\Step3Request.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\service\DiagnosisOrchestratorService.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\infrastructure\ontology\manager\OntologyManagerImpl.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\dto\request\CompleteDiagnosisRequest.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\AlzheimerBackendApplication.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\dto\request\Step1Request.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\infrastructure\ontology\manager\SWRLRuleExecutor.java
+E:\COLLEGE\SEMESTER 7\Semantic\project\L0122043_L0122156-WEB\L0122043-L0122156-WEB\backendJAVA\backend\src\main\java\com\alzheimer\application\dto\request\Step2Request.java
