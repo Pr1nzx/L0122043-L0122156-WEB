@@ -26,7 +26,7 @@ export default function Step4Treat({ data, onChange }) {
             {data.diagnosisResult || "Pending analysis..."}
           </p>
           {data.severity && (
-            <p className="text-xs sm:text-sm text-gray-700 mt-2">
+            <p className="text-xs sm:text-sm text-gray-900 mt-2">
               <span className="font-semibold">Severity:</span> {data.severity}
             </p>
           )}
@@ -34,7 +34,7 @@ export default function Step4Treat({ data, onChange }) {
 
         {/* Medication */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+          <label className="block text-sm font-medium text-gray-900 mb-1.5 sm:mb-2">
             Medication
           </label>
           <input
@@ -48,7 +48,7 @@ export default function Step4Treat({ data, onChange }) {
 
         {/* Dosage */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+          <label className="block text-sm font-medium text-gray-900 mb-1.5 sm:mb-2">
             Dosage Instructions
           </label>
           <textarea
@@ -62,7 +62,7 @@ export default function Step4Treat({ data, onChange }) {
 
         {/* Therapy */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+          <label className="block text-sm font-medium text-gray-900 mb-1.5 sm:mb-2">
             Therapy Plan
           </label>
           <textarea
@@ -106,7 +106,7 @@ export default function Step4Treat({ data, onChange }) {
 
         {/* Lifestyle Recommendations */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+          <label className="block text-sm font-medium text-gray-900 mb-1.5 sm:mb-2">
             Additional Lifestyle Recommendations
           </label>
           <textarea
@@ -120,7 +120,7 @@ export default function Step4Treat({ data, onChange }) {
 
         {/* Follow-up */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+          <label className="block text-sm font-medium text-gray-900 mb-1.5 sm:mb-2">
             Follow-up Schedule
           </label>
           <input

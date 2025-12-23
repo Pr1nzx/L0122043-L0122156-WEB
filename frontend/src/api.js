@@ -1,7 +1,7 @@
 // API Integration untuk backend Alzheimer Decision Support System
 import axios from 'axios'
 
-const API_BASE_URL = "http://localhost:8080/api/v1/diagnosis"
+const API_BASE_URL = "http://localhost:8000"
 
 // Create axios instance with default config
 const api = axios.create({
@@ -12,86 +12,46 @@ const api = axios.create({
   timeout: 30000, // 30 seconds
 })
 
-// Step 1: Initial Clinical Assessment
-export async function sendStep1Data(data) {
+// Single diagnosis endpoint that processes all patient data
+export async function sendDiagnoseData(data) {
   try {
-    console.log('📤 STEP1 REQUEST - Sending data to backend:', data)
-    const response = await api.post('/step1', data)
-    console.log('✅ STEP1 RESPONSE - Received from backend:', response.data)
-    return {
-      success: true,
-      sessionId: response.data.sessionId,
-      decision: response.data.decision,
-      message: response.data.message,
-      data: response.data
-    }
-  } catch (error) {
-    console.error('❌ STEP1 API Error:', error.response?.data || error.message)
-    throw {
-      success: false,
-      message: error.response?.data?.message || error.message || 'Failed to process Step 1'
-    }
-  }
-}
-
-// Step 2: Brain Imaging & Biomarkers
-export async function sendStep2Data(data, sessionId) {
-  try {
+    // Map frontend field names to backend PatientData schema
     const payload = {
-      ...data,
-      sessionId
+      age: data.age || null,
+      has_other_diseases: data.has_other_diseases || false,
+      mmse_score: data.mmse_score || null,
+      moca_score: data.moca_score || null,
+      faq_score: data.faq_score || null,
+      ad8_score: data.ad8_score || null,
+      ab42_40_score: data.ab42_40_score || null,
+      ab42_score: data.ab42_score || null,
+      ptau_ab42_score: data.ptau_ab42_score || null,
+      ptau181_score: data.ptau181_score || null,
+      t_tau_score: data.t_tau_score || null,
+      hippocampal_vol: data.hippocampal_vol || null,
+      imaging_method: data.imaging_method || [],
+      behavior_change: data.behavior_change || false,
+      is_independent: data.is_independent !== undefined ? data.is_independent : null
     }
-    console.log('📤 STEP2 REQUEST - Sending data to backend:', payload)
-    const response = await api.post('/step2', payload)
-    console.log('✅ STEP2 RESPONSE - Received from backend:', response.data)
-    return {
-      success: true,
-      decision: response.data.decision,
-      message: response.data.message,
-      data: response.data
-    }
-  } catch (error) {
-    console.error('❌ STEP2 API Error:', error.response?.data || error.message)
-    throw {
-      success: false,
-      message: error.response?.data?.message || error.message || 'Failed to process Step 2'
-    }
-  }
-}
 
-// Step 3: ATN Framework Diagnosis
-export async function sendStep3Data(data, sessionId) {
-  try {
-    const payload = {
-      ...data,
-      sessionId
-    }
-    console.log('📤 STEP3 REQUEST - Sending data to backend:', payload)
-    const response = await api.post('/step3', payload)
-    console.log('✅ STEP3 RESPONSE - Full backend response:', response.data)
-    console.log('📊 STEP3 Response fields:')
-    console.log('  - diagnosis:', response.data.diagnosis)
-    console.log('  - atnProfile:', response.data.atnProfile)
-    console.log('  - amyloidStatus:', response.data.amyloidStatus)
-    console.log('  - tauStatus:', response.data.tauStatus)
-    console.log('  - neurodegenerationStatus:', response.data.neurodegenerationStatus)
-    console.log('  - inferredClasses:', response.data.inferredClasses)
+    console.log('📤 DIAGNOSE REQUEST - Sending data to backend:', payload)
+    const response = await api.post('/diagnose', payload)
+    console.log('✅ DIAGNOSE RESPONSE - Received from backend:', response.data)
+    
     return {
       success: true,
-      decision: response.data.decision,
-      message: response.data.message,
-      diagnosis: response.data.diagnosis,
-      atnProfile: response.data.atnProfile,
-      amyloidStatus: response.data.amyloidStatus,
-      tauStatus: response.data.tauStatus,
-      neurodegenerationStatus: response.data.neurodegenerationStatus,
+      diagnosis: response.data.diagnosis || [],
+      severity: response.data.severity || [],
+      clinical_status: response.data.clinical_status || [],
+      recommended_actions: response.data.recommended_actions || [],
+      recommended_activities: response.data.recommended_activities || [],
       data: response.data
     }
   } catch (error) {
-    console.error('❌ STEP3 API Error:', error.response?.data || error.message)
+    console.error('❌ DIAGNOSE API Error:', error.response?.data || error.message)
     throw {
       success: false,
-      message: error.response?.data?.message || error.message || 'Failed to process Step 3'
+      message: error.response?.data?.detail || error.message || 'Failed to process diagnosis'
     }
   }
 }
@@ -99,8 +59,8 @@ export async function sendStep3Data(data, sessionId) {
 // Health check endpoint
 export async function checkBackendHealth() {
   try {
-    const response = await axios.get('http://localhost:8080/api/v1/health')
-    return response.data
+    const response = await axios.get('http://localhost:8000/docs')
+    return { status: 'UP' }
   } catch (error) {
     console.error('Health check failed:', error)
     return { status: 'DOWN' }

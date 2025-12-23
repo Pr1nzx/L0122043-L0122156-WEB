@@ -6,11 +6,10 @@ import Step1Detect from "./steps/Step1Detect"
 import Step2Assess from "./steps/Step2Assess"
 import Step3Diagnose from "./steps/Step3Diagnose"
 import Step4Treat from "./steps/Step4Treat"
-import { sendStep1Data, sendStep2Data, sendStep3Data } from "./api"
+import { sendDiagnoseData } from "./api"
 
 export default function DecisionFlow() {
   const [currentStep, setCurrentStep] = useState(0)
-  const [sessionId, setSessionId] = useState(null)
   const [formData, setFormData] = useState({
     step1: {},
     step2: {},
@@ -20,12 +19,12 @@ export default function DecisionFlow() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showSummary, setShowSummary] = useState(false)
+  const [diagnosisResult, setDiagnosisResult] = useState(null)
 
-  // Update step titles to match backend workflow
   const steps = [
     { title: "Clinical", description: "Initial Assessment" },
     { title: "Imaging", description: "Brain & Biomarkers" },
-    { title: "ATN", description: "Diagnosis" },
+    { title: "Diagnosis", description: "Results & Analysis" },
     { title: "Treatment", description: "Plan & Follow-up" },
   ]
 
@@ -36,170 +35,92 @@ export default function DecisionFlow() {
     }))
   }
 
-  // Handle analyze button untuk setiap step
+  // Handle analyze button - submits all data when moving from Step 2 to Step 3
   const handleAnalyze = async () => {
     setIsAnalyzing(true)
     
     try {
       const stepNumber = currentStep + 1
-      let response
 
       if (stepNumber === 1) {
-        // Step 1: Clinical Assessment
-        console.log('🔵 STEP 1: Preparing request...')
-        console.log('Step1 formData:', formData.step1)
-        const s1 = formData.step1
-        const s1Valid = !!s1.patientId &&
-          typeof s1.age === 'number' && !isNaN(s1.age) &&
-          typeof s1.hasFamilyHistory === 'boolean' &&
-          typeof s1.hasSubjectiveComplaints === 'boolean' &&
-          typeof s1.hasBehaviorChanges === 'boolean' &&
-          typeof s1.mmseScore === 'number' && !isNaN(s1.mmseScore) &&
-          typeof s1.mocaScore === 'number' && !isNaN(s1.mocaScore) &&
-          typeof s1.isIndependentADL === 'boolean' &&
-          typeof s1.isIndependentIADL === 'boolean'
-        console.log('📎 STEP1 validation:', { patientId: s1.patientId, age: s1.age, mmseScore: s1.mmseScore, mocaScore: s1.mocaScore, hasFamilyHistory: s1.hasFamilyHistory, hasSubjectiveComplaints: s1.hasSubjectiveComplaints, hasBehaviorChanges: s1.hasBehaviorChanges, isIndependentADL: s1.isIndependentADL, isIndependentIADL: s1.isIndependentIADL, valid: s1Valid })
-        if (!s1Valid) {
-          alert('Step 1 incomplete or invalid. Please fill all required fields.')
-          setIsAnalyzing(false)
-          return
+        // Just move to next step (Step 1 → Step 2)
+        if (currentStep < steps.length - 1) {
+          setCurrentStep(currentStep + 1)
         }
-        response = await sendStep1Data(formData.step1)
-        
-        if (response.success && response.sessionId) {
-          setSessionId(response.sessionId)
-          console.log('✅ Session created:', response.sessionId)
-          
-          // Update form data dengan response
-          updateFormData("step1", {
-            ...formData.step1,
-            responseMessage: response.message
-          })
-        }
-        
       } else if (stepNumber === 2) {
-        // Step 2: Brain Imaging & Biomarkers
-        if (!sessionId) {
-          throw new Error("No session ID found. Please complete Step 1 first.")
-        }
+        // Step 2: Collect all data and send to backend for diagnosis before moving to Step 3
+        console.log('🔵 DIAGNOSIS: Preparing request with all data...')
+        console.log('Step1 data:', formData.step1)
+        console.log('Step2 data:', formData.step2)
         
-        // Combine with patient ID from step 1
-        const step2Payload = {
-          ...formData.step2,
-          patientId: formData.step1.patientId,
-          // Include MMSE and MoCA from step1 if not in step2 (MMSE is required)
-          mmseScore: formData.step2.mmseScore ?? formData.step1.mmseScore,
-          mocaScore: formData.step2.mocaScore ?? formData.step1.mocaScore,
-          // Backend requires rule-out diseases boolean
-          hasRuleOutDiseases: formData.step2.hasRuleOutDiseases ?? true,
+        // Merge all form data into payload according to PatientData schema
+        const payload = {
+          // Basic patient info
+          age: formData.step1.age || null,
+          
+          // Cognitive assessments
+          mmse_score: formData.step1.mmse_score || null,
+          moca_score: formData.step1.moca_score || null,
+          faq_score: formData.step2.faq_score || null,
+          ad8_score: formData.step2.ad8_score || null,
+          
+          // Biomarkers - Amyloid (A)
+          ab42_40_score: formData.step2.ab42_40_score || null,
+          ab42_score: formData.step2.ab42_score || null,
+          
+          // Biomarkers - Tau (T)
+          ptau_ab42_score: formData.step2.ptau_ab42_score || null,
+          ptau181_score: formData.step2.ptau181_score || null,
+          
+          // Biomarkers - Neurodegeneration (N)
+          t_tau_score: formData.step2.t_tau_score || null,
+          hippocampal_vol: formData.step2.hippocampal_vol || null,
+          
+          // Imaging method selection
+          imaging_method: formData.step2.imaging_method || [],
+          
+          // Clinical flags
+          behavior_change: formData.step1.behavior_change || false,
+          has_other_diseases: formData.step1.has_other_diseases || false,
+          
+          // Independence status (based on ADL/IADL)
+          is_independent: formData.step1.is_independent !== undefined ? formData.step1.is_independent : null,
         }
-        console.log('📎 STEP2 validation:', {
-          patientId: step2Payload.patientId,
-          mmseScore: step2Payload.mmseScore,
-          brainImagingType: step2Payload.brainImagingType,
-          hasRuleOutDiseases: step2Payload.hasRuleOutDiseases,
-        })
-        
-        console.log('🔵 STEP 2: Preparing request...')
-        console.log('Step2 payload with sessionId:', step2Payload)
-        response = await sendStep2Data(step2Payload, sessionId)
+
+        console.log('📤 DIAGNOSIS PAYLOAD:', payload)
+        const response = await sendDiagnoseData(payload)
         
         if (response.success) {
-          updateFormData("step2", {
-            ...formData.step2,
-            responseMessage: response.message
+          console.log('✅ Diagnosis received:', response)
+          setDiagnosisResult(response)
+          
+          // Update step3 with diagnosis results
+          updateFormData("step3", {
+            diagnosis: response.diagnosis,
+            severity: response.severity,
+            clinical_status: response.clinical_status,
+            recommended_actions: response.recommended_actions,
+            recommended_activities: response.recommended_activities,
+            message: response.message || "Diagnosis completed"
           })
+          
+          // Move to step 3 to show results
+          setCurrentStep(2)
         }
         
       } else if (stepNumber === 3) {
-        // Step 3: ATN Diagnosis
-        if (!sessionId) {
-          throw new Error("No session ID found. Please complete Steps 1-2 first.")
-        }
-        
-        // Build Step3 payload using Step2 biomarker data
-        // Also include required recommendation flags to satisfy backend validation
-        const amyloidPos = typeof formData.step2.abeta4240Ratio === 'number' && formData.step2.abeta4240Ratio <= 0.01
-        const tauPos = typeof formData.step2.pTauAbeta42Ratio === 'number' && formData.step2.pTauAbeta42Ratio >= 0.10
-        const neuroPos = typeof formData.step2.hippocampalVolume === 'number' && formData.step2.hippocampalVolume < 2000
-
-        const step3Payload = {
-          patientId: formData.step1.patientId,
-          abeta4240Ratio: formData.step2.abeta4240Ratio,
-          pTauAbeta42Ratio: formData.step2.pTauAbeta42Ratio,
-          hippocampalVolume: formData.step2.hippocampalVolume,
-          mtaScore: formData.step2.mtaScore,
-          mriFindings: formData.step2.mriFindings || "",
-          // Optional but helpful for staging
-          mmseScore: formData.step1.mmseScore,
-          // Required flags (backend @NotNull) — provide sensible defaults
-          needsBiomarkersTest: !(amyloidPos && tauPos),
-          needsStructuralImaging: formData.step2.mtaScore !== undefined ? formData.step2.mtaScore >= 1 : !neuroPos,
-          needsFollowUp6Months: true,
-          // Pass any clinician notes from Step 3 UI if present
-          clinicalNotes: formData.step3?.clinicalNotes || "",
-        }
-        console.log('📎 STEP3 flags:', {
-          amyloidPos,
-          tauPos,
-          neuroPos,
-          needsBiomarkersTest: step3Payload.needsBiomarkersTest,
-          needsStructuralImaging: step3Payload.needsStructuralImaging,
-          needsFollowUp6Months: step3Payload.needsFollowUp6Months,
-        })
-        
-        console.log('🔵 STEP 3: Preparing request...')
-        console.log('Step3 payload with sessionId:', step3Payload)
-        console.log('Full Step2 data available:', formData.step2)
-        response = await sendStep3Data(step3Payload, sessionId)
-        console.log('🔵 STEP 3: Response received - success:', response.success)
-        
-        if (response.success) {
-          // Update step3 dengan diagnosis result
-          console.log('✅ Step3 Response received:', response)
-          console.log('✅ Diagnosis:', response.diagnosis)
-          console.log('✅ ATN Profile:', response.atnProfile)
-          console.log('✅ Statuses:', {
-            amyloidStatus: response.amyloidStatus,
-            tauStatus: response.tauStatus,
-            neurodegenerationStatus: response.neurodegenerationStatus
-          })
-          updateFormData("step3", {
-            diagnosis: response.diagnosis || response.data?.diagnosis,
-            atnProfile: response.atnProfile || response.data?.atnProfile,
-            message: response.message,
-            inferredClasses: response.data?.inferredClasses,
-            amyloidStatus: response.amyloidStatus || response.data?.amyloidStatus,
-            tauStatus: response.tauStatus || response.data?.tauStatus,
-            neurodegenerationStatus: response.neurodegenerationStatus || response.data?.neurodegenerationStatus,
-            abeta4240Ratio: formData.step2.abeta4240Ratio,
-            pTauAbeta42Ratio: formData.step2.pTauAbeta42Ratio,
-            hippocampalVolume: formData.step2.hippocampalVolume
-          })
-          
-          // Populate Step 4 dengan diagnosis
-          updateFormData("step4", {
-            diagnosisResult: response.diagnosis || response.data?.diagnosis,
-            severity: response.data?.severity
-          })
-          console.log('🔵 STEP 3: Form data updated, proceeding to next step...')
-        }
-      }
-
-      // Check if we can proceed
-      if (response && response.success) {
+        // Step 3 → Step 4: Move to treatment
         if (currentStep < steps.length - 1) {
           setCurrentStep(currentStep + 1)
-        } else {
-          setShowSummary(true)
         }
-      } else {
-        alert(response?.message || "Assessment stopped. Please check your inputs.")
+      } else if (stepNumber === 4) {
+        // Move to summary
+        setShowSummary(true)
       }
-      
+
     } catch (error) {
       console.error("Analysis failed:", error)
-      alert(error.message || "Failed to analyze results. Please check backend connection and try again.")
+      alert(error.message || "Failed to process diagnosis. Please check backend connection and try again.")
     } finally {
       setIsAnalyzing(false)
     }
@@ -222,12 +143,8 @@ export default function DecisionFlow() {
   const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
-      console.log("Final assessment submission:", {
-        sessionId,
-        ...formData
-      })
-      
-      alert("Assessment completed successfully! Session ID: " + sessionId)
+      console.log("Assessment submission complete with results:", diagnosisResult)
+      alert("Assessment completed successfully!")
     } catch (error) {
       console.error("Submission failed:", error)
       alert("Failed to submit assessment. Please try again.")
@@ -243,26 +160,22 @@ export default function DecisionFlow() {
 
   // Check if current step is complete
   const isStepComplete = () => {
-    const currentData = formData[`step${currentStep + 1}`]
+    const step1Data = formData.step1
+    const step2Data = formData.step2
     
     switch(currentStep) {
       case 0: // Step 1: Clinical Assessment
-        return !!currentData.patientId &&
-               typeof currentData.age === 'number' && !isNaN(currentData.age) &&
-               typeof currentData.hasFamilyHistory === 'boolean' &&
-               typeof currentData.hasSubjectiveComplaints === 'boolean' &&
-               typeof currentData.hasBehaviorChanges === 'boolean' &&
-               typeof currentData.mmseScore === 'number' && !isNaN(currentData.mmseScore) &&
-               typeof currentData.mocaScore === 'number' && !isNaN(currentData.mocaScore) &&
-               typeof currentData.isIndependentADL === 'boolean' &&
-               typeof currentData.isIndependentIADL === 'boolean'
+        return !!step1Data.age &&
+               typeof step1Data.mmse_score === 'number' && !isNaN(step1Data.mmse_score) &&
+               typeof step1Data.moca_score === 'number' && !isNaN(step1Data.moca_score) &&
+               typeof step1Data.behavior_change === 'boolean' &&
+               step1Data.is_independent !== undefined
                
       case 1: // Step 2: Imaging & Biomarkers
-         return !!currentData.brainImagingType &&
-           typeof currentData.hasRuleOutDiseases === 'boolean'
+        return step2Data.imaging_method && step2Data.imaging_method.length > 0
                
-      case 2: // Step 3: ATN Diagnosis
-        return true // Auto-populated from Step 2 + backend response
+      case 2: // Step 3: Diagnosis (shown after analysis)
+        return diagnosisResult !== null
         
       case 3: // Step 4: Treatment
         return true
@@ -279,14 +192,6 @@ export default function DecisionFlow() {
           Assessment Summary
         </h2>
 
-        {sessionId && (
-          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-sm font-mono">
-              <span className="font-semibold">Session ID:</span> {sessionId}
-            </p>
-          </div>
-        )}
-
         <div className="space-y-4 sm:space-y-6">
           {/* Step 1 Summary */}
           <details className="border border-gray-200 rounded-lg overflow-hidden">
@@ -302,11 +207,11 @@ export default function DecisionFlow() {
               </button>
             </summary>
             <div className="px-3 sm:px-4 py-3 bg-gray-50 border-t grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-              <div><span className="font-medium">Patient ID:</span> {formData.step1.patientId || "-"}</div>
               <div><span className="font-medium">Age:</span> {formData.step1.age || "-"} years</div>
-              <div><span className="font-medium">Family History:</span> {formData.step1.hasFamilyHistory ? "Yes" : "No"}</div>
-              <div><span className="font-medium">MMSE:</span> {formData.step1.mmseScore || "-"}/30</div>
-              <div><span className="font-medium">MoCA:</span> {formData.step1.mocaScore || "-"}/30</div>
+              <div><span className="font-medium">MMSE:</span> {formData.step1.mmse_score || "-"}/30</div>
+              <div><span className="font-medium">MoCA:</span> {formData.step1.moca_score || "-"}/30</div>
+              <div><span className="font-medium">Behavior Changes:</span> {formData.step1.behavior_change ? "Yes" : "No"}</div>
+              <div><span className="font-medium">Independent:</span> {formData.step1.is_independent ? "Yes" : "No"}</div>
             </div>
           </details>
 
@@ -324,39 +229,72 @@ export default function DecisionFlow() {
               </button>
             </summary>
             <div className="px-3 sm:px-4 py-3 bg-gray-50 border-t space-y-2 text-xs sm:text-sm">
-              <div><span className="font-medium">Imaging Type:</span> {formData.step2.brainImagingType || "-"}</div>
-              <div><span className="font-medium">Aβ42/40 Ratio:</span> {formData.step2.abeta4240Ratio || "-"}</div>
-              <div><span className="font-medium">P-Tau/Aβ42 Ratio:</span> {formData.step2.pTauAbeta42Ratio || "-"}</div>
-              <div><span className="font-medium">Adjusted Hippo Volume:</span> {formData.step2.hippocampalVolume || "-"}</div>
+              <div><span className="font-medium">Imaging Method:</span> {formData.step2.imaging_method?.join(", ") || "-"}</div>
+              <div><span className="font-medium">Aβ42/40 Score:</span> {formData.step2.ab42_40_score || "-"}</div>
+              <div><span className="font-medium">P-Tau/Aβ42 Score:</span> {formData.step2.ptau_ab42_score || "-"}</div>
+              <div><span className="font-medium">Hippocampal Volume:</span> {formData.step2.hippocampal_vol || "-"}</div>
             </div>
           </details>
 
-          {/* Step 3 Summary - ATN Diagnosis */}
+          {/* Step 3 Summary - Diagnosis Results */}
           <details open className="border-2 border-blue-300 rounded-lg overflow-hidden bg-blue-50">
             <summary className="px-3 sm:px-4 py-3 cursor-pointer hover:bg-blue-100 flex justify-between items-center">
               <h3 className="font-semibold text-blue-900 text-sm sm:text-base">
-                3. ATN Diagnosis
+                3. Diagnosis Results
               </h3>
-              <button 
-                onClick={(e) => { e.preventDefault(); handleEdit(2); }} 
-                className="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm"
-              >
-                Edit
-              </button>
             </summary>
-            <div className="px-3 sm:px-4 py-3 bg-white border-t space-y-2">
-              <div className="text-lg font-bold text-blue-700">
-                {formData.step3.diagnosis || "Pending diagnosis"}
-              </div>
-              {formData.step3.atnProfile && (
-                <div className="font-mono text-sm text-gray-700">
-                  ATN Profile: {formData.step3.atnProfile}
-                </div>
-              )}
-              {formData.step3.message && (
-                <div className="text-sm text-gray-600 mt-2">
-                  {formData.step3.message}
-                </div>
+            <div className="px-3 sm:px-4 py-3 bg-white border-t space-y-3">
+              {diagnosisResult && (
+                <>
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-2">Diagnoses:</h4>
+                    <ul className="space-y-1">
+                      {diagnosisResult.diagnosis && diagnosisResult.diagnosis.length > 0 ? (
+                        diagnosisResult.diagnosis.map((d, idx) => (
+                          <li key={idx} className="text-sm text-gray-700">• {d}</li>
+                        ))
+                      ) : (
+                        <li className="text-sm text-gray-500">-</li>
+                      )}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-2">Severity:</h4>
+                    <ul className="space-y-1">
+                      {diagnosisResult.severity && diagnosisResult.severity.length > 0 ? (
+                        diagnosisResult.severity.map((s, idx) => (
+                          <li key={idx} className="text-sm text-gray-700">• {s}</li>
+                        ))
+                      ) : (
+                        <li className="text-sm text-gray-500">-</li>
+                      )}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-2">Clinical Status:</h4>
+                    <ul className="space-y-1">
+                      {diagnosisResult.clinical_status && diagnosisResult.clinical_status.length > 0 ? (
+                        diagnosisResult.clinical_status.map((cs, idx) => (
+                          <li key={idx} className="text-sm text-gray-700">• {cs}</li>
+                        ))
+                      ) : (
+                        <li className="text-sm text-gray-500">-</li>
+                      )}
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-700 mb-2">Recommended Activities:</h4>
+                    <ul className="space-y-1">
+                      {diagnosisResult.recommended_activities && diagnosisResult.recommended_activities.length > 0 ? (
+                        diagnosisResult.recommended_activities.map((ra, idx) => (
+                          <li key={idx} className="text-sm text-gray-700">• {ra}</li>
+                        ))
+                      ) : (
+                        <li className="text-sm text-gray-500">-</li>
+                      )}
+                    </ul>
+                  </div>
+                </>
               )}
             </div>
           </details>
@@ -414,17 +352,10 @@ export default function DecisionFlow() {
     <div className="space-y-4 sm:space-y-6">
       <Stepper steps={steps} currentStep={currentStep} />
 
-      {sessionId && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-          <span className="font-semibold">Session:</span> 
-          <span className="font-mono ml-2">{sessionId}</span>
-        </div>
-      )}
-
       <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8">
         {currentStep === 0 && <Step1Detect data={formData.step1} onChange={(data) => updateFormData("step1", data)} />}
         {currentStep === 1 && <Step2Assess data={formData.step2} onChange={(data) => updateFormData("step2", data)} />}
-        {currentStep === 2 && <Step3Diagnose data={formData.step3} onChange={(data) => updateFormData("step3", data)} step2Data={formData.step2} />}
+        {currentStep === 2 && <Step3Diagnose data={diagnosisResult || formData.step3} onChange={(data) => updateFormData("step3", data)} />}
         {currentStep === 3 && <Step4Treat data={formData.step4} onChange={(data) => updateFormData("step4", data)} />}
 
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mt-6">
@@ -436,18 +367,26 @@ export default function DecisionFlow() {
             ← Previous
           </button>
           
-          {currentStep === 0 || currentStep === 1 ? (
+          {currentStep === 0 ? (
             <button
               onClick={handleAnalyze}
               disabled={!isStepComplete() || isAnalyzing}
               className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium text-sm sm:text-base order-1 sm:order-2"
             >
-              {isAnalyzing ? "Analyzing..." : "Analyze & Continue →"}
+              {isAnalyzing ? "Loading..." : "Continue →"}
+            </button>
+          ) : currentStep === 1 ? (
+            <button
+              onClick={handleAnalyze}
+              disabled={!isStepComplete() || isAnalyzing}
+              className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium text-sm sm:text-base order-1 sm:order-2"
+            >
+              {isAnalyzing ? "Analyzing..." : "Get Diagnosis →"}
             </button>
           ) : currentStep === 2 ? (
             <button
               onClick={handleAnalyze}
-              disabled={!isStepComplete() || isAnalyzing}
+              disabled={isAnalyzing || !diagnosisResult}
               className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium text-sm sm:text-base order-1 sm:order-2"
             >
               {isAnalyzing ? "Processing..." : "Continue to Treatment →"}
