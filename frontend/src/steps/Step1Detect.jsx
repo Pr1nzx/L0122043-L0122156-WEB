@@ -9,213 +9,286 @@ export default function Step1Detect({ data, onChange }) {
     <div className="space-y-4 sm:space-y-6">
       <div>
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
-          Clinical Diagnosis
+          Initial Clinical Assessment
         </h2>
         <p className="text-sm sm:text-base text-gray-600 mt-1">
-          Patient data, behavioral changes, and cognitive assessment
+          Patient information and cognitive screening
         </p>
       </div>
 
       <div className="space-y-4 sm:space-y-6">
-        {/* Data Diri Pasien */}
+        {/* Patient Information */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 lg:p-5">
-          <h3 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">
+          <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">
             Patient Information
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Patient ID
+                Patient ID *
               </label>
               <input
                 type="text"
                 value={data.patientId || ""}
                 onChange={(e) => handleChange("patientId", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter patient ID"
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., PT001"
+                required
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Age
+                Age (years) *
               </label>
               <input
                 type="number"
+                min="0"
+                max="120"
                 value={data.age || ""}
-                onChange={(e) => handleChange("age", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Years"
+                onChange={(e) => handleChange("age", parseInt(e.target.value))}
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 72"
+                required
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Gender
-              </label>
-              <select
-                value={data.gender || ""}
-                onChange={(e) => handleChange("gender", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select gender</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Education Level
-              </label>
-              <select
-                value={data.education || ""}
-                onChange={(e) => handleChange("education", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select level</option>
-                <option value="primary">Primary School</option>
-                <option value="secondary">Secondary School</option>
-                <option value="higher">Higher Education</option>
-              </select>
             </div>
           </div>
         </div>
 
-        {/* Perubahan Perilaku */}
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4 lg:p-5">
-          <h3 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">
-            Behavioral Changes Assessment
+        {/* Family History */}
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 sm:p-4 lg:p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">
+            Family History
           </h3>
           
-          <div className="space-y-4">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Memory Issues
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Family History of Dementia? *
               </label>
-              <select
-                value={data.memoryIssues || ""}
-                onChange={(e) => handleChange("memoryIssues", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                <option value="">Select severity</option>
-                <option value="none">None</option>
-                <option value="mild">Mild (forgets recent events)</option>
-                <option value="moderate">Moderate (impacts daily activities)</option>
-                <option value="severe">Severe (significant impairment)</option>
-              </select>
+              <div className="flex flex-wrap gap-3">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="hasFamilyHistory"
+                    checked={data.hasFamilyHistory === true}
+                    onChange={() => handleChange("hasFamilyHistory", true)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">Yes</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="hasFamilyHistory"
+                    checked={data.hasFamilyHistory === false}
+                    onChange={() => handleChange("hasFamilyHistory", false)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">No</span>
+                </label>
+              </div>
+            </div>
+
+            {data.hasFamilyHistory && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Family Member Diagnosis
+                </label>
+                <select
+                  value={data.familyMemberDiagnosis || ""}
+                  onChange={(e) => handleChange("familyMemberDiagnosis", e.target.value)}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select diagnosis type</option>
+                  <option value="AD">Alzheimer's Disease (AD)</option>
+                  <option value="Non-AD Dementia">Non-AD Dementia</option>
+                  <option value="Unknown">Unknown</option>
+                </select>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Clinical Symptoms */}
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4 lg:p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">
+            Clinical Symptoms
+          </h3>
+          
+          <div className="space-y-3 sm:space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Subjective Complaints (patient-reported memory issues)? *
+              </label>
+              <div className="flex flex-wrap gap-3">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="hasSubjectiveComplaints"
+                    checked={data.hasSubjectiveComplaints === true}
+                    onChange={() => handleChange("hasSubjectiveComplaints", true)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">Yes</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="hasSubjectiveComplaints"
+                    checked={data.hasSubjectiveComplaints === false}
+                    onChange={() => handleChange("hasSubjectiveComplaints", false)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">No</span>
+                </label>
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Confusion / Disorientation
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Behavioral Changes (mood, personality, sleep)? *
               </label>
-              <select
-                value={data.confusion || ""}
-                onChange={(e) => handleChange("confusion", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                <option value="">Select severity</option>
-                <option value="none">None</option>
-                <option value="mild">Mild (occasionally confused)</option>
-                <option value="moderate">Moderate (frequently confused)</option>
-                <option value="severe">Severe (always disoriented)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Language Difficulties
-              </label>
-              <select
-                value={data.languageDifficulty || ""}
-                onChange={(e) => handleChange("languageDifficulty", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                <option value="">Select severity</option>
-                <option value="none">None</option>
-                <option value="mild">Mild (word-finding difficulty)</option>
-                <option value="moderate">Moderate (trouble expressing)</option>
-                <option value="severe">Severe (cannot communicate)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Mood Changes
-              </label>
-              <select
-                value={data.moodChanges || ""}
-                onChange={(e) => handleChange("moodChanges", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-              >
-                <option value="">Select severity</option>
-                <option value="none">None</option>
-                <option value="mild">Mild (irritability)</option>
-                <option value="moderate">Moderate (depression/anxiety)</option>
-                <option value="severe">Severe (personality changes)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Behavioral Notes
-              </label>
-              <textarea
-                value={data.behavioralNotes || ""}
-                onChange={(e) => handleChange("behavioralNotes", e.target.value)}
-                rows={3}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-                placeholder="Additional behavioral observations..."
-              />
+              <div className="flex flex-wrap gap-3">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="hasBehaviorChanges"
+                    checked={data.hasBehaviorChanges === true}
+                    onChange={() => handleChange("hasBehaviorChanges", true)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">Yes</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="hasBehaviorChanges"
+                    checked={data.hasBehaviorChanges === false}
+                    onChange={() => handleChange("hasBehaviorChanges", false)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">No</span>
+                </label>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Tes Kognitif */}
+        {/* Cognitive Assessment Scores */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 lg:p-5">
-          <h3 className="font-semibold text-gray-900 mb-3 text-sm sm:text-base">
-            Cognitive Test (MMSE/MoCA)
+          <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">
+            Cognitive Assessment Scores
           </h3>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Test Type
-              </label>
-              <select
-                value={data.cognitiveTestType || ""}
-                onChange={(e) => handleChange("cognitiveTestType", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="">Select test</option>
-                <option value="mmse">MMSE (Mini-Mental State Examination)</option>
-                <option value="moca">MoCA (Montreal Cognitive Assessment)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Score
+                MMSE Score (0-30) *
               </label>
               <input
                 type="number"
                 min="0"
                 max="30"
-                value={data.cognitiveScore || ""}
-                onChange={(e) => handleChange("cognitiveScore", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="0-30"
+                value={data.mmseScore || ""}
+                onChange={(e) => handleChange("mmseScore", parseInt(e.target.value))}
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 22"
+                required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                {data.cognitiveTestType === "mmse" && "Normal: 24-30 | MCI: 18-23 | Dementia: <18"}
-                {data.cognitiveTestType === "moca" && "Normal: 26-30 | MCI: 18-25 | Dementia: <18"}
-                {!data.cognitiveTestType && "Select test type first"}
-              </p>
+              <p className="text-xs text-gray-500 mt-1">Mini-Mental State Examination</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                MoCA Score (0-30) *
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="30"
+                value={data.mocaScore || ""}
+                onChange={(e) => handleChange("mocaScore", parseInt(e.target.value))}
+                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="e.g., 20"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Montreal Cognitive Assessment</p>
             </div>
           </div>
         </div>
+
+        {/* Functional Independence */}
+        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4 lg:p-5">
+          <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">
+            Functional Independence
+          </h3>
+          
+          <div className="space-y-3 sm:space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Independent in ADL (Activities of Daily Living)? *
+              </label>
+              <div className="flex flex-wrap gap-3">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isIndependentADL"
+                    checked={data.isIndependentADL === true}
+                    onChange={() => handleChange("isIndependentADL", true)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">Yes</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isIndependentADL"
+                    checked={data.isIndependentADL === false}
+                    onChange={() => handleChange("isIndependentADL", false)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">No</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Bathing, dressing, eating, toileting</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Independent in IADL (Instrumental Activities)? *
+              </label>
+              <div className="flex flex-wrap gap-3">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isIndependentIADL"
+                    checked={data.isIndependentIADL === true}
+                    onChange={() => handleChange("isIndependentIADL", true)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">Yes</span>
+                </label>
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="isIndependentIADL"
+                    checked={data.isIndependentIADL === false}
+                    onChange={() => handleChange("isIndependentIADL", false)}
+                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm sm:text-base">No</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Managing finances, shopping, cooking, transportation</p>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs sm:text-sm text-gray-500 italic">
+          * Required fields
+        </p>
       </div>
     </div>
   )

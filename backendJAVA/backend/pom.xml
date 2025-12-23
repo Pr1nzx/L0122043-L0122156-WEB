@@ -73,6 +73,13 @@
             <version>${owlapi.version}</version>
         </dependency>
         
+        <!-- Pellet Reasoner for SWRL support -->
+        <dependency>
+            <groupId>com.github.galigator.openllet</groupId>
+            <artifactId>openllet-owlapi</artifactId>
+            <version>2.6.5</version>
+        </dependency>
+        
         <!-- Utilities -->
         <dependency>
             <groupId>org.apache.commons</groupId>
