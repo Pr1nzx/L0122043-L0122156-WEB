@@ -15,23 +15,26 @@ const api = axios.create({
 // Single diagnosis endpoint that processes all patient data
 export async function sendDiagnoseData(data) {
   try {
-    // Map frontend field names to backend PatientData schema
+    // Map frontend field names to new backend PatientData schema
     const payload = {
       age: data.age || null,
-      has_other_diseases: data.has_other_diseases || false,
+      family_history: data.family_history || false,
       mmse_score: data.mmse_score || null,
       moca_score: data.moca_score || null,
       faq_score: data.faq_score || null,
-      ad8_score: data.ad8_score || null,
-      ab42_40_score: data.ab42_40_score || null,
-      ab42_score: data.ab42_score || null,
-      ptau_ab42_score: data.ptau_ab42_score || null,
+      is_independent: data.is_independent !== undefined ? data.is_independent : null,
+      
+      // Biomarkers
+      abeta42_score: data.abeta42_score || null,
+      abeta42_40_ratio: data.abeta42_40_ratio || null,
       ptau181_score: data.ptau181_score || null,
-      t_tau_score: data.t_tau_score || null,
-      hippocampal_vol: data.hippocampal_vol || null,
+      ptau_abeta_ratio: data.ptau_abeta_ratio || null,
+      ttau_score: data.ttau_score || null,
+      adj_hippocampal_vol: data.adj_hippocampal_vol || null,
+      
+      // Imaging and behavior
       imaging_method: data.imaging_method || [],
-      behavior_change: data.behavior_change || false,
-      is_independent: data.is_independent !== undefined ? data.is_independent : null
+      has_behavior_change: data.has_behavior_change || false
     }
 
     console.log('📤 DIAGNOSE REQUEST - Sending data to backend:', payload)
@@ -41,10 +44,9 @@ export async function sendDiagnoseData(data) {
     return {
       success: true,
       diagnosis: response.data.diagnosis || [],
-      severity: response.data.severity || [],
-      clinical_status: response.data.clinical_status || [],
-      recommended_actions: response.data.recommended_actions || [],
-      recommended_activities: response.data.recommended_activities || [],
+      risk: response.data.risk || [],
+      recommendations: response.data.recommendations || [],
+      biomarkers: response.data.biomarkers || [],
       data: response.data
     }
   } catch (error) {

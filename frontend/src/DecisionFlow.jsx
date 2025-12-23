@@ -53,38 +53,31 @@ export default function DecisionFlow() {
         console.log('Step1 data:', formData.step1)
         console.log('Step2 data:', formData.step2)
         
-        // Merge all form data into payload according to PatientData schema
+        // Merge all form data into payload according to new PatientData schema
         const payload = {
           // Basic patient info
           age: formData.step1.age || null,
+          family_history: formData.step1.family_history || false,
           
           // Cognitive assessments
           mmse_score: formData.step1.mmse_score || null,
           moca_score: formData.step1.moca_score || null,
           faq_score: formData.step2.faq_score || null,
-          ad8_score: formData.step2.ad8_score || null,
+          is_independent: formData.step1.is_independent !== undefined ? formData.step1.is_independent : null,
           
-          // Biomarkers - Amyloid (A)
-          ab42_40_score: formData.step2.ab42_40_score || null,
-          ab42_score: formData.step2.ab42_score || null,
-          
-          // Biomarkers - Tau (T)
-          ptau_ab42_score: formData.step2.ptau_ab42_score || null,
+          // Biomarkers - Updated field names
+          abeta42_score: formData.step2.abeta42_score || null,
+          abeta42_40_ratio: formData.step2.abeta42_40_ratio || null,
           ptau181_score: formData.step2.ptau181_score || null,
-          
-          // Biomarkers - Neurodegeneration (N)
-          t_tau_score: formData.step2.t_tau_score || null,
-          hippocampal_vol: formData.step2.hippocampal_vol || null,
+          ptau_abeta_ratio: formData.step2.ptau_abeta_ratio || null,
+          ttau_score: formData.step2.ttau_score || null,
+          adj_hippocampal_vol: formData.step2.adj_hippocampal_vol || null,
           
           // Imaging method selection
           imaging_method: formData.step2.imaging_method || [],
           
           // Clinical flags
-          behavior_change: formData.step1.behavior_change || false,
-          has_other_diseases: formData.step1.has_other_diseases || false,
-          
-          // Independence status (based on ADL/IADL)
-          is_independent: formData.step1.is_independent !== undefined ? formData.step1.is_independent : null,
+          has_behavior_change: formData.step1.has_behavior_change || false,
         }
 
         console.log('📤 DIAGNOSIS PAYLOAD:', payload)
@@ -97,11 +90,10 @@ export default function DecisionFlow() {
           // Update step3 with diagnosis results
           updateFormData("step3", {
             diagnosis: response.diagnosis,
-            severity: response.severity,
-            clinical_status: response.clinical_status,
-            recommended_actions: response.recommended_actions,
-            recommended_activities: response.recommended_activities,
-            message: response.message || "Diagnosis completed"
+            risk: response.risk,
+            recommendations: response.recommendations,
+            biomarkers: response.biomarkers,
+            message: "Diagnosis completed"
           })
           
           // Move to step 3 to show results
@@ -167,9 +159,9 @@ export default function DecisionFlow() {
       case 0: // Step 1: Clinical Assessment
         return !!step1Data.age &&
                typeof step1Data.mmse_score === 'number' && !isNaN(step1Data.mmse_score) &&
-               typeof step1Data.moca_score === 'number' && !isNaN(step1Data.moca_score) &&
-               typeof step1Data.behavior_change === 'boolean' &&
-               step1Data.is_independent !== undefined
+               typeof step1Data.family_history === 'boolean' &&
+               step1Data.is_independent !== undefined &&
+               typeof step1Data.has_behavior_change === 'boolean'
                
       case 1: // Step 2: Imaging & Biomarkers
         return step2Data.imaging_method && step2Data.imaging_method.length > 0
@@ -187,110 +179,115 @@ export default function DecisionFlow() {
 
   if (showSummary) {
     return (
-      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8">
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
+      <div className="dark:bg-gray-900 dark:border-gray-700 bg-white rounded-lg shadow-md border border-gray-200 p-4 sm:p-6 lg:p-8">
+        <h2 className="text-xl sm:text-2xl font-bold dark:text-white text-gray-900 mb-4 sm:mb-6">
           Assessment Summary
         </h2>
 
         <div className="space-y-4 sm:space-y-6">
           {/* Step 1 Summary */}
-          <details className="border border-gray-200 rounded-lg overflow-hidden">
-            <summary className="px-3 sm:px-4 py-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
+          <details className="dark:border-gray-700 border border-gray-200 rounded-lg overflow-hidden">
+            <summary className="dark:hover:bg-gray-800 px-3 sm:px-4 py-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center dark:bg-gray-800">
+              <h3 className="font-semibold dark:text-white text-gray-900 text-sm sm:text-base">
                 1. Clinical Assessment
               </h3>
               <button 
                 onClick={(e) => { e.preventDefault(); handleEdit(0); }} 
-                className="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm"
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-xs sm:text-sm"
               >
                 Edit
               </button>
             </summary>
-            <div className="px-3 sm:px-4 py-3 bg-gray-50 border-t grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
-              <div><span className="font-medium">Age:</span> {formData.step1.age || "-"} years</div>
-              <div><span className="font-medium">MMSE:</span> {formData.step1.mmse_score || "-"}/30</div>
-              <div><span className="font-medium">MoCA:</span> {formData.step1.moca_score || "-"}/30</div>
-              <div><span className="font-medium">Behavior Changes:</span> {formData.step1.behavior_change ? "Yes" : "No"}</div>
-              <div><span className="font-medium">Independent:</span> {formData.step1.is_independent ? "Yes" : "No"}</div>
+            <div className="dark:bg-gray-700 px-3 sm:px-4 py-3 bg-gray-50 border-t dark:border-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+              <div className="dark:text-white text-gray-900"><span className="font-medium">Age:</span> {formData.step1.age || "-"} years</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">MMSE:</span> {formData.step1.mmse_score || "-"}/30</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">MoCA:</span> {formData.step1.moca_score || "-"}/30</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">Family History:</span> {formData.step1.family_history ? "Yes" : "No"}</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">Behavior Changes:</span> {formData.step1.has_behavior_change ? "Yes" : "No"}</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">Independent:</span> {formData.step1.is_independent ? "Yes" : "No"}</div>
             </div>
           </details>
 
           {/* Step 2 Summary */}
-          <details className="border border-gray-200 rounded-lg overflow-hidden">
-            <summary className="px-3 sm:px-4 py-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
+          <details className="dark:border-gray-700 border border-gray-200 rounded-lg overflow-hidden">
+            <summary className="dark:hover:bg-gray-800 px-3 sm:px-4 py-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center dark:bg-gray-800">
+              <h3 className="font-semibold dark:text-white text-gray-900 text-sm sm:text-base">
                 2. Brain Imaging & Biomarkers
               </h3>
               <button 
                 onClick={(e) => { e.preventDefault(); handleEdit(1); }} 
-                className="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm"
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-xs sm:text-sm"
               >
                 Edit
               </button>
             </summary>
-            <div className="px-3 sm:px-4 py-3 bg-gray-50 border-t space-y-2 text-xs sm:text-sm">
-              <div><span className="font-medium">Imaging Method:</span> {formData.step2.imaging_method?.join(", ") || "-"}</div>
-              <div><span className="font-medium">Aβ42/40 Score:</span> {formData.step2.ab42_40_score || "-"}</div>
-              <div><span className="font-medium">P-Tau/Aβ42 Score:</span> {formData.step2.ptau_ab42_score || "-"}</div>
-              <div><span className="font-medium">Hippocampal Volume:</span> {formData.step2.hippocampal_vol || "-"}</div>
+            <div className="dark:bg-gray-700 px-3 sm:px-4 py-3 bg-gray-50 border-t dark:border-gray-600 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs sm:text-sm">
+              <div className="dark:text-white text-gray-900"><span className="font-medium">Imaging:</span> {formData.step2.imaging_method?.length > 0 ? formData.step2.imaging_method.join(", ") : "-"}</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">FAQ:</span> {formData.step2.faq_score || "-"}/30</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">Aβ42:</span> {formData.step2.abeta42_score || "-"} pg/mL</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">Aβ42/40 Ratio:</span> {formData.step2.abeta42_40_ratio || "-"}</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">p-tau181:</span> {formData.step2.ptau181_score || "-"} pg/mL</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">p-tau/Aβ42 Ratio:</span> {formData.step2.ptau_abeta_ratio || "-"}</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">t-tau:</span> {formData.step2.ttau_score || "-"} pg/mL</div>
+              <div className="dark:text-white text-gray-900"><span className="font-medium">Hippocampal Vol:</span> {formData.step2.adj_hippocampal_vol || "-"}</div>
             </div>
           </details>
 
           {/* Step 3 Summary - Diagnosis Results */}
-          <details open className="border-2 border-blue-300 rounded-lg overflow-hidden bg-blue-50">
-            <summary className="px-3 sm:px-4 py-3 cursor-pointer hover:bg-blue-100 flex justify-between items-center">
-              <h3 className="font-semibold text-blue-900 text-sm sm:text-base">
+          <details open className="dark:border-blue-600 dark:bg-blue-900 border-2 border-blue-300 rounded-lg overflow-hidden bg-blue-50">
+            <summary className="dark:hover:bg-blue-800 px-3 sm:px-4 py-3 cursor-pointer hover:bg-blue-100 flex justify-between items-center dark:bg-blue-900">
+              <h3 className="font-semibold dark:text-blue-200 text-blue-900 text-sm sm:text-base">
                 3. Diagnosis Results
               </h3>
             </summary>
-            <div className="px-3 sm:px-4 py-3 bg-white border-t space-y-3">
+            <div className="dark:bg-gray-800 px-3 sm:px-4 py-3 bg-white border-t dark:border-gray-700 space-y-3">
               {diagnosisResult && (
                 <>
                   <div>
-                    <h4 className="font-semibold text-gray-700 mb-2">Diagnoses:</h4>
+                    <h4 className="font-semibold dark:text-blue-200 text-gray-700 mb-2">Diagnoses:</h4>
                     <ul className="space-y-1">
                       {diagnosisResult.diagnosis && diagnosisResult.diagnosis.length > 0 ? (
                         diagnosisResult.diagnosis.map((d, idx) => (
-                          <li key={idx} className="text-sm text-gray-700">• {d}</li>
+                          <li key={idx} className="text-sm dark:text-blue-100 text-gray-700">• {d}</li>
                         ))
                       ) : (
-                        <li className="text-sm text-gray-500">-</li>
+                        <li className="text-sm dark:text-gray-400 text-gray-500">-</li>
                       )}
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-700 mb-2">Severity:</h4>
+                    <h4 className="font-semibold dark:text-red-200 text-gray-700 mb-2">Risk Assessment:</h4>
                     <ul className="space-y-1">
-                      {diagnosisResult.severity && diagnosisResult.severity.length > 0 ? (
-                        diagnosisResult.severity.map((s, idx) => (
-                          <li key={idx} className="text-sm text-gray-700">• {s}</li>
+                      {diagnosisResult.risk && diagnosisResult.risk.length > 0 ? (
+                        diagnosisResult.risk.map((r, idx) => (
+                          <li key={idx} className="text-sm dark:text-red-100 text-gray-700">• {r}</li>
                         ))
                       ) : (
-                        <li className="text-sm text-gray-500">-</li>
+                        <li className="text-sm dark:text-gray-400 text-gray-500">-</li>
                       )}
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-700 mb-2">Clinical Status:</h4>
+                    <h4 className="font-semibold dark:text-green-200 text-gray-700 mb-2">Recommendations:</h4>
                     <ul className="space-y-1">
-                      {diagnosisResult.clinical_status && diagnosisResult.clinical_status.length > 0 ? (
-                        diagnosisResult.clinical_status.map((cs, idx) => (
-                          <li key={idx} className="text-sm text-gray-700">• {cs}</li>
+                      {diagnosisResult.recommendations && diagnosisResult.recommendations.length > 0 ? (
+                        diagnosisResult.recommendations.map((rec, idx) => (
+                          <li key={idx} className="text-sm dark:text-green-100 text-gray-700">• {rec}</li>
                         ))
                       ) : (
-                        <li className="text-sm text-gray-500">-</li>
+                        <li className="text-sm dark:text-gray-400 text-gray-500">-</li>
                       )}
                     </ul>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-700 mb-2">Recommended Activities:</h4>
+                    <h4 className="font-semibold dark:text-purple-200 text-gray-700 mb-2">Biomarkers:</h4>
                     <ul className="space-y-1">
-                      {diagnosisResult.recommended_activities && diagnosisResult.recommended_activities.length > 0 ? (
-                        diagnosisResult.recommended_activities.map((ra, idx) => (
-                          <li key={idx} className="text-sm text-gray-700">• {ra}</li>
+                      {diagnosisResult.biomarkers && diagnosisResult.biomarkers.length > 0 ? (
+                        diagnosisResult.biomarkers.map((b, idx) => (
+                          <li key={idx} className="text-sm dark:text-purple-100 text-gray-700">• {b}</li>
                         ))
                       ) : (
-                        <li className="text-sm text-gray-500">-</li>
+                        <li className="text-sm dark:text-gray-400 text-gray-500">-</li>
                       )}
                     </ul>
                   </div>
@@ -300,28 +297,28 @@ export default function DecisionFlow() {
           </details>
 
           {/* Step 4 Summary */}
-          <details className="border border-gray-200 rounded-lg overflow-hidden">
-            <summary className="px-3 sm:px-4 py-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center">
-              <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
+          <details className="dark:border-gray-700 border border-gray-200 rounded-lg overflow-hidden">
+            <summary className="dark:hover:bg-gray-800 px-3 sm:px-4 py-3 cursor-pointer hover:bg-gray-50 flex justify-between items-center dark:bg-gray-800">
+              <h3 className="font-semibold dark:text-white text-gray-900 text-sm sm:text-base">
                 4. Treatment Plan
               </h3>
               <button 
                 onClick={(e) => { e.preventDefault(); handleEdit(3); }} 
-                className="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm"
+                className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium text-xs sm:text-sm"
               >
                 Edit
               </button>
             </summary>
-            <div className="px-3 sm:px-4 py-3 bg-gray-50 border-t space-y-3 text-xs sm:text-sm">
-              <div>
+            <div className="dark:bg-gray-700 px-3 sm:px-4 py-3 bg-gray-50 border-t dark:border-gray-600 space-y-3 text-xs sm:text-sm">
+              <div className="dark:text-white text-gray-900">
                 <span className="font-medium">Medication:</span>
                 <p className="mt-1">{formData.step4.medication || "-"}</p>
               </div>
-              <div>
+              <div className="dark:text-white text-gray-900">
                 <span className="font-medium">Therapy:</span>
                 <p className="mt-1">{formData.step4.therapy || "-"}</p>
               </div>
-              <div>
+              <div className="dark:text-white text-gray-900">
                 <span className="font-medium">Follow-up:</span>
                 <p className="mt-1">{formData.step4.followUp || "-"}</p>
               </div>
@@ -332,14 +329,14 @@ export default function DecisionFlow() {
         <div className="flex flex-col sm:flex-row gap-3 mt-6 sm:mt-8">
           <button
             onClick={() => setShowSummary(false)}
-            className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-sm sm:text-base"
+            className="flex-1 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium text-sm sm:text-base"
           >
             Back to Edit
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 font-medium text-sm sm:text-base"
+            className="flex-1 dark:bg-green-700 dark:hover:bg-green-600 dark:disabled:bg-green-900 px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-green-400 font-medium text-sm sm:text-base"
           >
             {isSubmitting ? "Submitting..." : "Submit Assessment"}
           </button>
@@ -352,7 +349,7 @@ export default function DecisionFlow() {
     <div className="space-y-4 sm:space-y-6">
       <Stepper steps={steps} currentStep={currentStep} />
 
-      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 lg:p-8">
+      <div className="dark:bg-gray-900 dark:border-gray-700 bg-white rounded-lg shadow-md border border-gray-200 p-4 sm:p-6 lg:p-8">
         {currentStep === 0 && <Step1Detect data={formData.step1} onChange={(data) => updateFormData("step1", data)} />}
         {currentStep === 1 && <Step2Assess data={formData.step2} onChange={(data) => updateFormData("step2", data)} />}
         {currentStep === 2 && <Step3Diagnose data={diagnosisResult || formData.step3} onChange={(data) => updateFormData("step3", data)} />}
@@ -362,7 +359,7 @@ export default function DecisionFlow() {
           <button
             onClick={handleBack}
             disabled={currentStep === 0}
-            className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 font-medium text-sm sm:text-base order-2 sm:order-1"
+            className="dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 dark:disabled:bg-gray-800 dark:disabled:text-gray-500 px-4 sm:px-6 py-2.5 sm:py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 font-medium text-sm sm:text-base order-2 sm:order-1"
           >
             ← Previous
           </button>
@@ -379,7 +376,7 @@ export default function DecisionFlow() {
             <button
               onClick={handleAnalyze}
               disabled={!isStepComplete() || isAnalyzing}
-              className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium text-sm sm:text-base order-1 sm:order-2"
+              className="flex-1 dark:bg-blue-700 dark:hover:bg-blue-600 dark:disabled:bg-gray-700 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium text-sm sm:text-base order-1 sm:order-2"
             >
               {isAnalyzing ? "Analyzing..." : "Get Diagnosis →"}
             </button>
@@ -387,14 +384,14 @@ export default function DecisionFlow() {
             <button
               onClick={handleAnalyze}
               disabled={isAnalyzing || !diagnosisResult}
-              className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium text-sm sm:text-base order-1 sm:order-2"
+              className="flex-1 dark:bg-green-700 dark:hover:bg-green-600 dark:disabled:bg-gray-700 px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium text-sm sm:text-base order-1 sm:order-2"
             >
               {isAnalyzing ? "Processing..." : "Continue to Treatment →"}
             </button>
           ) : (
             <button
               onClick={handleNext}
-              className="flex-1 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm sm:text-base order-1 sm:order-2"
+              className="flex-1 dark:bg-blue-700 dark:hover:bg-blue-600 px-4 sm:px-6 py-2.5 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm sm:text-base order-1 sm:order-2"
             >
               Review Summary →
             </button>

@@ -1,119 +1,80 @@
 "use client"
 
-export default function Step3Diagnose({ data, onChange }) {
-  const handleChange = (field, value) => {
-    onChange({ [field]: value })
-  }
-
-  // Check if data is from diagnosis result or form data
-  const isResult = data?.diagnosis || data?.severity
+export default function Step3Diagnose({ data }) {
+  const isResult = data?.diagnosis || data?.risk || data?.recommendations || data?.biomarkers
 
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold dark:text-white text-gray-900">
           Diagnosis Results
         </h2>
-        <p className="text-sm sm:text-base text-gray-600 mt-1">
+        <p className="text-sm sm:text-base dark:text-gray-400 text-gray-600 mt-1">
           ATN biomarker analysis and clinical diagnosis
         </p>
       </div>
 
-      <div className="space-y-4 sm:space-y-6">
-        {/* Diagnosis Result */}
-        {isResult && (
-          <>
-            {/* Main Diagnosis */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 border-2 border-blue-800 rounded-lg p-4 sm:p-6">
-              <h3 className="text-lg sm:text-xl font-bold text-white mb-3">
+      {isResult ? (
+        <div className="space-y-4 sm:space-y-6">
+          {data.diagnosis && data.diagnosis.length > 0 && (
+            <div className="dark:bg-blue-900 dark:border-blue-700 bg-gradient-to-r from-blue-600 to-blue-700 border-2 border-blue-800 rounded-lg p-4 sm:p-6">
+              <h3 className="text-lg sm:text-xl font-bold dark:text-blue-100 text-white mb-3">
                 🧠 Primary Diagnosis
               </h3>
               <div className="space-y-2">
-                {data.diagnosis && data.diagnosis.length > 0 ? (
-                  data.diagnosis.map((diag, idx) => (
-                    <p key={idx} className="text-xl sm:text-2xl font-bold text-yellow-200">
-                      {diag}
-                    </p>
-                  ))
-                ) : (
-                  <p className="text-yellow-200">No diagnosis available</p>
-                )}
+                {data.diagnosis.map((d, idx) => (
+                  <p key={idx} className="text-lg sm:text-xl font-bold dark:text-blue-200 text-yellow-200">
+                    {d}
+                  </p>
+                ))}
               </div>
             </div>
+          )}
 
-            {/* Severity */}
-            {data.severity && data.severity.length > 0 && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 sm:p-4 lg:p-5">
-                <h3 className="font-semibold text-orange-900 mb-3 text-sm sm:text-base">
-                  Severity Level
-                </h3>
-                <div className="space-y-2">
-                  {data.severity.map((sev, idx) => (
-                    <div key={idx} className="px-4 py-2 bg-orange-100 rounded text-orange-900 font-semibold">
-                      {sev}
-                    </div>
-                  ))}
-                </div>
+          {data.risk && data.risk.length > 0 && (
+            <div className="dark:bg-red-800 dark:border-red-700 bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="font-semibold dark:text-red-100 text-red-900 mb-3">Risk Assessment</h3>
+              <div className="space-y-2">
+                {data.risk.map((r, idx) => (
+                  <div key={idx} className="dark:bg-red-700 px-4 py-2 bg-red-100 rounded dark:text-red-100 text-red-900 font-semibold">
+                    ⚠️ {r}
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Clinical Status */}
-            {data.clinical_status && data.clinical_status.length > 0 && (
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 sm:p-4 lg:p-5">
-                <h3 className="font-semibold text-purple-900 mb-3 text-sm sm:text-base">
-                  ATN Biomarker Status
-                </h3>
-                <div className="space-y-2">
-                  {data.clinical_status.map((status, idx) => (
-                    <div key={idx} className="px-4 py-2 bg-purple-100 rounded text-purple-900 font-semibold">
-                      {status}
-                    </div>
-                  ))}
-                </div>
+          {data.biomarkers && data.biomarkers.length > 0 && (
+            <div className="dark:bg-purple-800 dark:border-purple-700 bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h3 className="font-semibold dark:text-purple-100 text-purple-900 mb-3">Biomarker Status</h3>
+              <div className="space-y-2">
+                {data.biomarkers.map((b, idx) => (
+                  <div key={idx} className="dark:bg-purple-700 px-4 py-2 bg-purple-100 rounded dark:text-purple-100 text-purple-900 font-semibold">
+                    🔬 {b}
+                  </div>
+                ))}
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Recommended Activities */}
-            {data.recommended_activities && data.recommended_activities.length > 0 && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 lg:p-5">
-                <h3 className="font-semibold text-green-900 mb-3 text-sm sm:text-base">
-                  Recommended Activities & Interventions
-                </h3>
-                <div className="space-y-2">
-                  {data.recommended_activities.map((activity, idx) => (
-                    <div key={idx} className="px-4 py-2 bg-green-100 rounded text-green-900 font-semibold">
-                      ✓ {activity}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Recommended Actions */}
-            {data.recommended_actions && data.recommended_actions.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 lg:p-5">
-                <h3 className="font-semibold text-blue-900 mb-3 text-sm sm:text-base">
-                  Clinical Recommendations
-                </h3>
-                <ul className="space-y-2">
-                  {data.recommended_actions.map((action, idx) => (
-                    <li key={idx} className="text-blue-900 text-sm">→ {action}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Empty state */}
-        {!isResult && (
-          <div className="bg-gray-50 border border-gray-300 rounded-lg p-6 text-center">
-            <p className="text-gray-600 text-sm sm:text-base">
-              Complete Steps 1 and 2 to generate diagnosis results.
-            </p>
-          </div>
-        )}
-      </div>
+          {data.recommendations && data.recommendations.length > 0 && (
+            <div className="dark:bg-green-800 dark:border-green-700 bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="font-semibold dark:text-green-100 text-green-900 mb-3">Recommendations</h3>
+              <ul className="space-y-2">
+                {data.recommendations.map((rec, idx) => (
+                  <li key={idx} className="dark:text-green-100 text-green-900 text-sm">
+                    ✓ {rec}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="dark:bg-yellow-900 dark:border-yellow-700 dark:text-yellow-100 bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-800">
+          <p>Waiting for diagnosis results...</p>
+        </div>
+      )}
     </div>
   )
 }
