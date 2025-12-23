@@ -1,3 +1,4 @@
 fastapi
 uvicorn
 owlready2
+rdflib
