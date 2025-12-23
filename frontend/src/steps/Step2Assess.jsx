@@ -7,16 +7,26 @@ export default function Step2Assess({ data, onChange }) {
 
   const handleDecimalInput = (field, stringValue) => {
     // Keep the string as-is for display, but convert to number for storage
-    if (stringValue === '') {
+    if (stringValue === '' || stringValue === undefined) {
       handleChange(field, undefined)
       return
     }
     
-    // Validate it's a valid number (accepts 0.091, 0.01, 5, etc)
-    const num = parseFloat(stringValue)
-    if (!isNaN(num) && stringValue.trim() !== '') {
+    // Trim whitespace
+    const trimmed = stringValue.trim()
+    
+    // Allow empty input
+    if (trimmed === '') {
+      handleChange(field, undefined)
+      return
+    }
+    
+    // Validate it's a valid number (accepts 0.091, 0.01, 5, -5.5, etc)
+    const num = parseFloat(trimmed)
+    if (!isNaN(num)) {
       handleChange(field, num)
     }
+    // If not valid, don't update (keep previous value)
   }
 
   const getDisplayValue = (field) => {
@@ -82,7 +92,8 @@ export default function Step2Assess({ data, onChange }) {
             <div>
               <label className="block text-sm font-medium dark:text-gray-200 text-gray-900 mb-1">Aβ42 (pg/mL)</label>
               <input 
-                type="text" 
+                type="number" 
+                step="any"
                 value={getDisplayValue("abeta42_score")} 
                 onChange={(e) => handleDecimalInput("abeta42_score", e.target.value)} 
                 className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3 py-2 border border-gray-300 rounded-lg" 
@@ -93,7 +104,8 @@ export default function Step2Assess({ data, onChange }) {
             <div>
               <label className="block text-sm font-medium dark:text-gray-200 text-gray-900 mb-1">Aβ42/40 Ratio</label>
               <input 
-                type="text" 
+                type="number" 
+                step="any"
                 value={getDisplayValue("abeta42_40_ratio")} 
                 onChange={(e) => handleDecimalInput("abeta42_40_ratio", e.target.value)} 
                 className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3 py-2 border border-gray-300 rounded-lg" 
@@ -111,7 +123,8 @@ export default function Step2Assess({ data, onChange }) {
             <div>
               <label className="block text-sm font-medium dark:text-gray-200 text-gray-900 mb-1">P-Tau181 (pg/mL)</label>
               <input 
-                type="text" 
+                type="number" 
+                step="any"
                 value={getDisplayValue("ptau181_score")} 
                 onChange={(e) => handleDecimalInput("ptau181_score", e.target.value)} 
                 className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3 py-2 border border-gray-300 rounded-lg" 
@@ -122,7 +135,8 @@ export default function Step2Assess({ data, onChange }) {
             <div>
               <label className="block text-sm font-medium dark:text-gray-200 text-gray-900 mb-1">P-Tau/Aβ42 Ratio</label>
               <input 
-                type="text" 
+                type="number" 
+                step="any"
                 value={getDisplayValue("ptau_abeta_ratio")} 
                 onChange={(e) => handleDecimalInput("ptau_abeta_ratio", e.target.value)} 
                 className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3 py-2 border border-gray-300 rounded-lg" 
@@ -140,7 +154,8 @@ export default function Step2Assess({ data, onChange }) {
             <div>
               <label className="block text-sm font-medium dark:text-gray-200 text-gray-900 mb-1">T-Tau (pg/mL)</label>
               <input 
-                type="text" 
+                type="number" 
+                step="any"
                 value={getDisplayValue("ttau_score")} 
                 onChange={(e) => handleDecimalInput("ttau_score", e.target.value)} 
                 className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3 py-2 border border-gray-300 rounded-lg" 
@@ -151,7 +166,8 @@ export default function Step2Assess({ data, onChange }) {
             <div>
               <label className="block text-sm font-medium dark:text-gray-200 text-gray-900 mb-1">Hippocampal Vol (mm³)</label>
               <input 
-                type="text" 
+                type="number" 
+                step="any"
                 value={getDisplayValue("adj_hippocampal_vol")} 
                 onChange={(e) => handleDecimalInput("adj_hippocampal_vol", e.target.value)} 
                 className="w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white px-3 py-2 border border-gray-300 rounded-lg" 

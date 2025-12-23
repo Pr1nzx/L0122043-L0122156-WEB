@@ -1,7 +1,28 @@
 "use client"
 
 export default function Step3Diagnose({ data }) {
-  const isResult = data?.diagnosis || data?.risk || data?.recommendations || data?.biomarkers
+  const isResult = data?.diagnosis || data?.severity || data?.risk || data?.recommendations || data?.biomarkers
+
+  // Color mapping for severity levels
+  const severityColors = {
+    mild: { bg: "bg-blue-100 dark:bg-blue-900", border: "border-blue-300 dark:border-blue-700", text: "text-blue-900 dark:text-blue-100", badge: "bg-blue-500", label: "Mild", description: "Early stages with minimal cognitive decline" },
+    moderate: { bg: "bg-yellow-100 dark:bg-yellow-900", border: "border-yellow-300 dark:border-yellow-700", text: "text-yellow-900 dark:text-yellow-100", badge: "bg-yellow-500", label: "Moderate", description: "Noticeable cognitive and functional decline" },
+    severe: { bg: "bg-red-100 dark:bg-red-900", border: "border-red-300 dark:border-red-700", text: "text-red-900 dark:text-red-100", badge: "bg-red-500", label: "Severe", description: "Significant cognitive impairment requiring care" }
+  }
+
+  const getSeverityColor = (level) => {
+    return severityColors[level?.toLowerCase()] || severityColors.mild
+  }
+
+  // Severity description mapping
+  const getSeverityInfo = (level) => {
+    const info = getSeverityColor(level)
+    return {
+      label: info.label,
+      description: info.description,
+      colors: info
+    }
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -16,17 +37,42 @@ export default function Step3Diagnose({ data }) {
 
       {isResult ? (
         <div className="space-y-4 sm:space-y-6">
-          {data.diagnosis && data.diagnosis.length > 0 && (
+          {(data.diagnosis || data.severity) && (
             <div className="dark:bg-blue-900 dark:border-blue-700 bg-gradient-to-r from-blue-600 to-blue-700 border-2 border-blue-800 rounded-lg p-4 sm:p-6">
-              <h3 className="text-lg sm:text-xl font-bold dark:text-blue-100 text-white mb-3">
+              <h3 className="text-lg sm:text-xl font-bold dark:text-blue-100 text-white mb-4">
                 🧠 Primary Diagnosis
               </h3>
-              <div className="space-y-2">
-                {data.diagnosis.map((d, idx) => (
-                  <p key={idx} className="text-lg sm:text-xl font-bold dark:text-blue-200 text-yellow-200">
-                    {d}
-                  </p>
-                ))}
+              <div className="space-y-3">
+                {data.severity && (
+                  <div className={`border-2 ${getSeverityColor(data.severity).border} ${getSeverityColor(data.severity).bg} rounded-lg p-4`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wide ${getSeverityColor(data.severity).text} mb-2 opacity-75`}>
+                      Severity Level
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <div className={`${getSeverityColor(data.severity).badge} rounded-full p-3`}>
+                        <span className="text-white text-xl font-bold">!</span>
+                      </div>
+                      <div>
+                        <p className={`text-2xl sm:text-3xl font-bold ${getSeverityColor(data.severity).text}`}>
+                          {getSeverityInfo(data.severity).label}
+                        </p>
+                        <p className={`text-sm ${getSeverityColor(data.severity).text} opacity-80 mt-1`}>
+                          {getSeverityInfo(data.severity).description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {data.diagnosis && (
+                  <div className="bg-white/10 backdrop-blur rounded-lg p-4 border border-white/20">
+                    <p className="text-xs font-semibold uppercase tracking-wide dark:text-blue-200 text-blue-100 mb-2 opacity-75">
+                      Clinical Diagnosis
+                    </p>
+                    <p className="text-xl sm:text-2xl font-bold dark:text-blue-100 text-white">
+                      {data.diagnosis}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

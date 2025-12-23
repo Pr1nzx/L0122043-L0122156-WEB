@@ -218,25 +218,66 @@ def diagnose_patient(data: PatientData):
 
         # 9. EXTRACT RESULTS
         results = {
-            "diagnosis": [],
+            "diagnosis": None,
+            "severity": None,
             "risk": [],
             "recommendations": [],
             "biomarkers": []
         }
 
+        # DEBUG: Print all patient classes
+        print("\n🔍 DEBUG - Patient inferred classes:")
+        for cls in patient.is_a:
+            if hasattr(cls, "name"):
+                print(f"  - {cls.name}")
+
+        # Track severity separately
+        severity_found = None
+        diagnosis_found = None
+        
         for cls in patient.is_a:
             if hasattr(cls, "name"):
                 name = cls.name
                 if name in ["Person", "Thing", "ClinicalTest", "TempPatient"]: continue
                 
-                if name in ["mild", "moderate", "severe"]:
-                     results["diagnosis"].append(f"Severity: {name}")
-                elif any(x in name for x in ["Asymptomatic", "MCI", "Dementia", "Subjective"]):
-                    results["diagnosis"].append(name)
+                # Check for severity from SIO classes
+                if "SIO_001215" in name:
+                    severity_found = "severe"
+                    print(f"✅ Found severity: severe from {name}")
+                elif "SIO_001214" in name:
+                    severity_found = "moderate"
+                    print(f"✅ Found severity: moderate from {name}")
+                elif "SIO_001213" in name:
+                    severity_found = "mild"
+                    print(f"✅ Found severity: mild from {name}")
+                
+                # Check for severity from Activities classes (backup)
+                elif "SevereActivities" in name:
+                    severity_found = "severe"
+                    print(f"✅ Found severity: severe from {name}")
+                elif "ModerateActivities" in name:
+                    severity_found = "moderate"
+                    print(f"✅ Found severity: moderate from {name}")
+                elif "MildActivities" in name:
+                    severity_found = "mild"
+                    print(f"✅ Found severity: mild from {name}")
+                
+                # Check for diagnosis categories
+                if any(x in name for x in ["Asymptomatic", "MCI", "Dementia", "Subjective"]):
+                    diagnosis_found = name
+                    print(f"✅ Found diagnosis: {name}")
                 elif "HighRisk" in name:
                     results["risk"].append(name)
+                    print(f"✅ Found risk: {name}")
                 elif "Need" in name:
                     results["recommendations"].append(name)
+                    print(f"✅ Found recommendation: {name}")
+        
+        # Set diagnosis and severity as separate fields
+        results["diagnosis"] = diagnosis_found
+        results["severity"] = severity_found
+        
+        print(f"\n📊 FINAL RESULTS: {results}\n")
 
         for cls in clinical_test.is_a:
             if hasattr(cls, "name"):

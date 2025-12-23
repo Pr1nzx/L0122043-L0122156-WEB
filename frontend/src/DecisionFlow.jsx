@@ -90,6 +90,7 @@ export default function DecisionFlow() {
           // Update step3 with diagnosis results
           updateFormData("step3", {
             diagnosis: response.diagnosis,
+            severity: response.severity,
             risk: response.risk,
             recommendations: response.recommendations,
             biomarkers: response.biomarkers,
