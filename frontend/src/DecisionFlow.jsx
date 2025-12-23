@@ -105,6 +105,11 @@ export default function DecisionFlow() {
 
   // Check if current step is complete
   const isStepComplete = () => {
+    // TEMPORARY: Always return true untuk UI preview
+    // TODO: Uncomment logic di bawah setelah selesai review UI
+    // return true
+    
+    
     const currentData = formData[`step${currentStep + 1}`]
     
     switch(currentStep) {
@@ -124,6 +129,7 @@ export default function DecisionFlow() {
       default:
         return false
     }
+    
   }
 
   if (showSummary) {

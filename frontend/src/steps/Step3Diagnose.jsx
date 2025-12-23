@@ -1,15 +1,17 @@
 "use client"
 
-export default function Step3Diagnose({ data, onChange }) {
+export default function Step3Diagnose({ data, onChange, step2Data }) {
   const handleChange = (field, value) => {
     onChange({ [field]: value })
   }
 
-  // Auto-calculate hippocampal ratio
+  // Auto-calculate hippocampal ratio from Step 2 data
   const calculateRatio = () => {
-    const left = parseFloat(data.hippoLeft) || 0
-    const right = parseFloat(data.hippoRight) || 0
-    const icv = parseFloat(data.icv) || 0
+    if (!step2Data) return "N/A"
+    
+    const left = parseFloat(step2Data.hippoLeft) || 0
+    const right = parseFloat(step2Data.hippoRight) || 0
+    const icv = parseFloat(step2Data.icv) || 0
     
     if (icv === 0) return "0.0000"
     
@@ -18,17 +20,7 @@ export default function Step3Diagnose({ data, onChange }) {
     return ratio.toFixed(4)
   }
 
-  const ratio = calculateRatio()
-
-  // Auto-update ratio when inputs change
-  const handleVolumeChange = (field, value) => {
-    handleChange(field, value)
-    
-    setTimeout(() => {
-      const newRatio = calculateRatio()
-      handleChange("hippoRatio", newRatio)
-    }, 0)
-  }
+  const hippoRatio = calculateRatio()
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -37,7 +29,7 @@ export default function Step3Diagnose({ data, onChange }) {
           ATN Biomarker Framework
         </h2>
         <p className="text-sm sm:text-base text-gray-600 mt-1">
-          Amyloid, Tau, and Neurodegeneration assessment
+          Complete biomarker analysis for dementia classification
         </p>
       </div>
 
@@ -48,36 +40,60 @@ export default function Step3Diagnose({ data, onChange }) {
             <span className="bg-purple-600 text-white w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs sm:text-sm">
               A
             </span>
-            Amyloid (CSF Aβ42)
+            Amyloid Beta (Aβ) Pathology
           </h3>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                CSF Aβ42 Level
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                value={data.amyloidCSF || ""}
-                onChange={(e) => handleChange("amyloidCSF", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="pg/mL"
-              />
-              <p className="text-xs text-gray-500 mt-1">Normal: &gt; 550 pg/mL</p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  CSF Aβ42 Level (pg/mL)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={data.amyloidCSF || ""}
+                  onChange={(e) => handleChange("amyloidCSF", e.target.value)}
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="pg/mL"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  A+ (positive): &lt; 550 pg/mL<br/>
+                  A- (negative): &gt; 550 pg/mL
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Platform/Method
+                </label>
+                <select
+                  value={data.amyloidMethod || ""}
+                  onChange={(e) => handleChange("amyloidMethod", e.target.value)}
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="">Select method</option>
+                  <option value="elecsys">Elecsys</option>
+                  <option value="lumipulse">Lumipulse</option>
+                  <option value="innotest">INNOTEST</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                Platform/Method
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                Amyloid PET (if available)
               </label>
-              <input
-                type="text"
-                value={data.amyloidMethod || ""}
-                onChange={(e) => handleChange("amyloidMethod", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="e.g., Elecsys"
-              />
+              <select
+                value={data.amyloidPET || ""}
+                onChange={(e) => handleChange("amyloidPET", e.target.value)}
+                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="">Not performed</option>
+                <option value="negative">Negative (no amyloid)</option>
+                <option value="positive">Positive (amyloid present)</option>
+              </select>
             </div>
           </div>
         </div>
@@ -88,132 +104,128 @@ export default function Step3Diagnose({ data, onChange }) {
             <span className="bg-orange-600 text-white w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs sm:text-sm">
               T
             </span>
-            Tau (CSF p-Tau)
+            Tau Pathology
           </h3>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                CSF Total Tau
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                CSF Total Tau (pg/mL)
               </label>
               <input
                 type="number"
                 step="0.1"
                 value={data.tauCSF || ""}
                 onChange={(e) => handleChange("tauCSF", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="pg/mL"
               />
-              <p className="text-xs text-gray-500 mt-1">Normal: &lt; 300 pg/mL</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Normal: &lt; 300 pg/mL
+              </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                CSF p-Tau181
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                CSF p-Tau181 (pg/mL)
               </label>
               <input
                 type="number"
                 step="0.1"
                 value={data.ptauCSF || ""}
                 onChange={(e) => handleChange("ptauCSF", e.target.value)}
-                className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 placeholder="pg/mL"
               />
-              <p className="text-xs text-gray-500 mt-1">Normal: &lt; 60 pg/mL</p>
+              <p className="text-xs text-gray-500 mt-1">
+                T+ (positive): &gt; 60 pg/mL<br/>
+                T- (negative): &lt; 60 pg/mL
+              </p>
             </div>
           </div>
         </div>
 
-        {/* N - Neurodegeneration */}
+        {/* N - Neurodegeneration (dari Step 2) */}
         <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 lg:p-5">
           <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm sm:text-base">
             <span className="bg-green-600 text-white w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs sm:text-sm">
               N
             </span>
-            Neurodegeneration (Hippocampal Volume)
+            Neurodegeneration (from Brain Imaging)
           </h3>
           
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                  Left Hippocampus
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={data.hippoLeft || ""}
-                  onChange={(e) => handleVolumeChange("hippoLeft", e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="mm³"
-                />
+          {step2Data && step2Data.hippoLeft && step2Data.hippoRight && step2Data.icv ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-3 text-xs sm:text-sm">
+                <div className="p-2 bg-white rounded border border-green-200">
+                  <div className="text-gray-500 text-xs">Left Hippo</div>
+                  <div className="font-semibold">{step2Data.hippoLeft} mm³</div>
+                </div>
+                <div className="p-2 bg-white rounded border border-green-200">
+                  <div className="text-gray-500 text-xs">Right Hippo</div>
+                  <div className="font-semibold">{step2Data.hippoRight} mm³</div>
+                </div>
+                <div className="p-2 bg-white rounded border border-green-200">
+                  <div className="text-gray-500 text-xs">ICV</div>
+                  <div className="font-semibold">{step2Data.icv} mm³</div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                  Right Hippocampus
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={data.hippoRight || ""}
-                  onChange={(e) => handleVolumeChange("hippoRight", e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="mm³"
-                />
-              </div>
-
-              <div className="sm:col-span-2 lg:col-span-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-                  Total ICV
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={data.icv || ""}
-                  onChange={(e) => handleVolumeChange("icv", e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="mm³"
-                />
-              </div>
-            </div>
-
-            {/* Auto-calculated Ratio */}
-            {data.hippoLeft && data.hippoRight && data.icv && (
-              <div className="mt-4 p-3 sm:p-4 bg-white rounded-lg border-2 border-green-300">
+              <div className="p-4 bg-white rounded-lg border-2 border-green-400">
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-                  <span className="text-xs sm:text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-gray-700">
                     Normalized Hippocampal Ratio:
                   </span>
-                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-green-700">
-                    {ratio}%
+                  <span className="text-2xl sm:text-3xl font-bold text-green-700">
+                    {hippoRatio}%
                   </span>
                 </div>
-                <div className="mt-2 pt-2 border-t border-green-200">
-                  <p className="text-xs text-gray-500">
-                    Formula: (Left + Right) / ICV × 100%
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    = ({data.hippoLeft} + {data.hippoRight}) / {data.icv} × 100%
-                  </p>
+                <div className="mt-2 pt-2 border-t border-green-200 text-xs text-gray-600">
+                  <div>Formula: (Left + Right) / ICV × 100%</div>
+                  <div className="mt-1">
+                    N+ (positive): Ratio &lt; 0.45%<br/>
+                    N- (negative): Ratio &gt; 0.45%
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                ⚠️ No hippocampal volume data from Step 2. Please complete Brain Imaging step first.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Clinical Notes */}
+        {/* Clinical Interpretation */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
-            Clinical Notes
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            Clinical Interpretation & Notes
           </label>
           <textarea
             value={data.clinicalNotes || ""}
             onChange={(e) => handleChange("clinicalNotes", e.target.value)}
             rows={4}
-            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            placeholder="Additional observations or interpretations..."
+            className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            placeholder="Additional clinical observations and interpretation..."
           />
+        </div>
+
+        {/* ATN Profile Summary */}
+        <div className="bg-blue-50 border-2 border-blue-300 rounded-lg p-4">
+          <h4 className="font-semibold text-gray-900 mb-2 text-sm">
+            Expected ATN Classification Output:
+          </h4>
+          <div className="space-y-1 text-xs sm:text-sm text-gray-700">
+            <div>• A+T+N+ → Alzheimer's Disease</div>
+            <div>• A+T-N- → Preclinical AD</div>
+            <div>• A-T+N+ → Suspected Non-AD Pathology</div>
+            <div>• A-T-N+ → Non-AD Neurodegeneration</div>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Backend will process this data using SPARQL queries to Apache Jena reasoner
+          </p>
         </div>
       </div>
     </div>
