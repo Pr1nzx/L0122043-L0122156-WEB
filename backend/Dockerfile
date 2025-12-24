@@ -4,6 +4,9 @@ FROM python:3.9-slim
 # Set folder kerja di dalam container
 WORKDIR /app
 
+# Install Java (untuk Pellet reasoner di Owlready2)
+RUN apt-get update && apt-get install -y default-jre && rm -rf /var/lib/apt/lists/*
+
 # Copy file requirements
 COPY requirements.txt .
 

@@ -1,5 +1,5 @@
-# Pake Node.js yang ringan
-FROM node:18-alpine
+# Pake Node.js versi 22 (support Vite terbaru)
+FROM node:22-alpine
 
 # Set folder kerja
 WORKDIR /app

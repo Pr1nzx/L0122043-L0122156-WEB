@@ -12,13 +12,10 @@ export default function App() {
                 Alzheimer's Assessment System
               </h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">
-                Comprehensive clinical evaluation following ATN framework
+                Evaluasi klinis komprehensif mengikuti kerangka ATN
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs sm:text-sm font-medium rounded-full">
-                Clinical v1.0
-              </span>
             </div>
           </div>
         </div>
@@ -33,7 +30,7 @@ export default function App() {
       <footer className="bg-white border-t border-gray-200 mt-12">
         <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} Alzheimer's Assessment System. All rights reserved.
+            Buatan mahasiswa informatika UNS 2022 L0122043 - L0122156. 2025
           </p>
         </div>
       </footer>
