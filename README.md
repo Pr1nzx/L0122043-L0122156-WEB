@@ -1,3 +1,33 @@
+⚠️ **ACADEMIC ASSIGNMENT - PLEASE READ** ⚠️
+
+### 📌 Project Information
+
+**Project Name:** AD Decision Support System  
+**Purpose:** Course Assignment for Semantic Web (Informatika UNS - 2025)  
+**Created By:**
+- **Danang Aprianto:** L0122043 (Informatika 2022, UNS)
+- **Yudha Cahya P:** L0122156 (Informatika 2022, UNS)
+
+**Course Details:**
+- 🏫 **University:** Universitas Sebelas Maret (UNS)
+- 📚 **Program:** Informatika (Computer Science)
+- 👥 **Batch/Angkatan:** 2022
+- 🎓 **Course:** Semantic Web
+- 📅 **Academic Year:** 2025
+
+**Assignment Description:**  
+This project is created to fulfill the course requirements of the Semantic Web course at Informatika UNS. The assignment focuses on implementing semantic web technologies (OWL ontologies and RDF) in a real-world healthcare application - specifically for Alzheimer's Disease diagnosis and treatment decision support.
+
+### ⚠️ Important Notice
+
+> **DO NOT copy-paste or plagiarize** this code for your own assignments
+> - This repository is published for reference and educational purposes only
+> - If you're a student, create your own solution to learn the concepts properly
+> - Plagiarism violates academic integrity policies and can result in serious consequences
+> - Your instructor has tools to detect copied code - it's not worth the risk!
+
+---
+
 # AD Decision Support System
 
 A web-based decision support system for Alzheimer's Disease diagnosis and treatment, built with React frontend and Python backend using semantic web technologies (OWL ontology).
@@ -17,6 +47,11 @@ A web-based decision support system for Alzheimer's Disease diagnosis and treatm
 ## 🎯 Overview
 
 This project is an intelligent decision support system that helps in the detection, assessment, diagnosis, and treatment of Alzheimer's Disease. It uses semantic web technologies (OWL ontologies) combined with modern web frameworks to provide a comprehensive clinical decision support interface.
+
+**Course Assignment:**
+- 🏫 **Course:** Semantic Web (Informatika UNS)
+- 📅 **Academic Year:** 2025
+- 👥 **Students:** L0122043 & L0122156 (Informatika 2022)
 
 **Key Features:**
 - 4-step clinical workflow (Detect → Assess → Diagnose → Treat)
@@ -290,14 +325,9 @@ cd frontend && npm install
 - **main.py** - Backend Flask/FastAPI application
 - **api.js** - Frontend API client for backend communication
 
-## 👥 Team
-
-- **Student 1:** L0122043
-- **Student 2:** L0122156
-
 ## 📄 License
 
-This project is developed for educational purposes.
+This project is developed for educational purposes as a course assignment at Universitas Sebelas Maret (UNS), submitted in the Semantic Web course (2025).
 
 ## 🤝 Contributing
 
