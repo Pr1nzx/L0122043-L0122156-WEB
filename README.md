@@ -6,7 +6,7 @@
 **Purpose:** Course Assignment for Semantic Web (Informatika UNS - 2025)  
 **Created By:**
 - **Danang Aprianto:** L0122043 (Informatika 2022, UNS)
-- **Yudha Cahya P:** L0122156 (Informatika 2022, UNS)
+- **Yudha Cahya W:** L0122156 (Informatika 2022, UNS)
 
 **Course Details:**
 - 🏫 **University:** Universitas Sebelas Maret (UNS)
